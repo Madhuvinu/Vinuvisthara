@@ -1,0 +1,9 @@
+# PHP Version for this project
+# This file indicates which PHP version this project uses
+# 
+# Usage:
+#   - For old projects (PHP 7.4): echo "7.4" > .project-php-version
+#   - For Laravel 11 (PHP 8.3): echo "8.3" > .project-php-version
+#   - Then run: source php-version-switch.sh $(cat .project-php-version)
+
+8.3

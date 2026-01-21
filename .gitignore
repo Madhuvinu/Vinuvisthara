@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*-server.log
+*-startup.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.js.map
+*.d.ts.map
+
+# Compiled TypeScript (source should be .ts)
+# Keep only .ts source files in _custom_backend_models
+_custom_backend_models/*.js
+_custom_backend_models/*.d.ts
+_custom_backend_models/*.map
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.sqlite
+*.db
+*.sql
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Coverage
+coverage/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+
+# Scripts and documentation (removed from repo)
+*.sh
+*.md
+
+# Uploads and media (keep structure but ignore content)
+uploads/
+public/uploads/
+
+# Backups
+*.backup
+*_backup_*.sql
