@@ -1,0 +1,10 @@
+[build]
+builder = "nixpacks"
+buildCommand = "cd backend-laravel && composer install --no-dev --optimize-autoloader && npm install && npm run prod && php artisan filament:assets"
+
+[[services]]
+name = "app"
+source_dir = "backend-laravel"
+
+[deploy]
+startCommand = "cd backend-laravel && bash start.sh"

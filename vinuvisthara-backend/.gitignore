@@ -1,0 +1,38 @@
+# Laravel specific
+/vendor/
+/node_modules/
+.env
+.env.backup
+.env.production
+/storage/*.key
+/bootstrap/cache/*
+/public/storage
+/public/hot
+/public/storage
+
+# Environment files
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Cache
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
+
+# Runtime logs
+/storage/logs/
+/storage/debugbar/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
