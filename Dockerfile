@@ -29,14 +29,13 @@ RUN composer install --no-dev --optimize-autoloader
 # Install Node.js dependencies and build assets
 RUN npm install && npm run build
 
-# Copy environment file
-RUN if [ ! -f .env ]; then cp .env.example .env; fi
+# Note: .env should be provided at runtime, not copied from example
+# Generate application key only if not set (will be overridden by runtime .env)
+RUN php artisan key:generate --force || true
 
-# Generate application key
-RUN php artisan key:generate
-
-# Cache configuration for production
-RUN php artisan config:cache && php artisan route:cache && php artisan view:cache
+# Don't cache config at build time - do it at runtime with actual .env values
+# Cache configuration for production (commented out - should be done at runtime)
+# RUN php artisan config:cache && php artisan route:cache && php artisan view:cache
 
 # Set proper permissions
 RUN chown -R www-data:www-data /var/www/html/backend-laravel \
