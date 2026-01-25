@@ -22,6 +22,7 @@ class OrderController extends Controller
             'shippingAddress.state' => 'required|string',
             'shippingAddress.pincode' => 'required|string',
             'shippingAddress.phone' => 'required|string',
+            'paymentMethod' => 'nullable|string|in:cod,razorpay',
             'notes' => 'nullable|string',
         ]);
 
@@ -101,19 +102,30 @@ class OrderController extends Controller
                 $item->product->decrement('stock', $item->quantity);
             }
 
-            // Clear cart
-            $cart->items()->delete();
-            $cart->delete();
+            $paymentMethod = $request->input('paymentMethod', 'cod');
+            
+            // Only clear cart and send email for COD orders immediately
+            // For online payment, cart will be cleared after payment verification
+            if ($paymentMethod === 'cod') {
+                // Clear cart for COD
+                $cart->items()->delete();
+                $cart->delete();
+                
+                // Update order status for COD
+                $order->update([
+                    'payment_status' => 'pending',
+                    'status' => 'confirmed',
+                ]);
+                
+                // Send order confirmation email for COD
+                try {
+                    \Mail::to($customer->email)->send(new \App\Mail\OrderConfirmationMail($order));
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send order confirmation email: ' . $e->getMessage());
+                }
+            }
 
             DB::commit();
-
-            // Send order confirmation email
-            try {
-                \Mail::to($customer->email)->send(new \App\Mail\OrderConfirmationMail($order));
-            } catch (\Exception $e) {
-                // Log error but don't fail the order
-                \Log::error('Failed to send order confirmation email: ' . $e->getMessage());
-            }
 
             return response()->json([
                 'id' => $order->id,
@@ -123,6 +135,7 @@ class OrderController extends Controller
                 'subtotal' => $order->subtotal,
                 'tax' => $order->tax,
                 'shipping' => $order->shipping,
+                'paymentMethod' => $paymentMethod,
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();

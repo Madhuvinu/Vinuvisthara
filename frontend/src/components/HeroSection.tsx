@@ -58,31 +58,19 @@ export default function HeroSection() {
 
   useEffect(() => {
     const fetchSlides = async () => {
-      const timestamp = new Date().toISOString();
-      console.log(`[${timestamp}] HeroSection: Starting to fetch slides`);
-      
       try {
         // Fetch slider images via Next.js API proxy
         const response = await fetch('/api/slider-images', {
           cache: 'no-cache', // Always fetch fresh (no-cache is more compatible)
         });
         
-        console.log(`[${timestamp}] HeroSection: API response status: ${response.status}`);
-        
         if (response.ok) {
           const data = await response.json();
-          console.log(`[${timestamp}] HeroSection: API response data:`, {
-            hasData: !!data,
-            hasSliders: !!data.sliders,
-            slidersCount: data.sliders?.length || 0,
-            sliders: data.sliders,
-          });
           
           const sliderImages = data.sliders || [];
           
           // Use all data: images, text, and background color
           if (sliderImages.length > 0) {
-            console.log(`[${timestamp}] HeroSection: Processing ${sliderImages.length} slides`);
             const defaultSlide = getDefaultSlides()[0]; // Fallback for missing fields
             const slides = sliderImages.map((image: any, index: number) => ({
               id: image.id || `slide-${index}`,
@@ -117,22 +105,15 @@ export default function HeroSection() {
             }));
             
             setSlides(slides);
-            console.log(`[${timestamp}] HeroSection: Set ${slides.length} slides`);
             return;
-          } else {
-            console.warn(`[${timestamp}] HeroSection: No slides found in response, using defaults`);
           }
-        } else {
-          console.warn(`[${timestamp}] HeroSection: API response not OK (${response.status}), using defaults`);
         }
         
         // Fallback to default slides if no images found
-        console.warn(`[${timestamp}] HeroSection: No slider images found, using default slides`);
         const defaultSlides = getDefaultSlides();
         setSlides(defaultSlides);
-        console.log(`[${timestamp}] HeroSection: Set ${defaultSlides.length} default slides`);
       } catch (error) {
-        console.error('Failed to fetch slider images:', error);
+        // Silently fallback to defaults
         setSlides(getDefaultSlides());
       }
     };

@@ -18,7 +18,6 @@ export async function GET() {
     });
 
     if (!response.ok) {
-      console.error('Laravel slider-images endpoint returned error:', response.status);
       return NextResponse.json(
         { sliders: [] },
         { status: 200 }
@@ -27,13 +26,9 @@ export async function GET() {
 
     const data = await response.json();
     
-    // Debug: Log the raw API response
-    console.log('[Slider API] Raw response:', JSON.stringify(data, null, 2));
-    
     // Laravel returns: { sliders: [{ id, title, description, image_url, images[], link, order }] }
     // Transform to frontend format
     const sliders = (data.sliders || []).map((item: any) => {
-      console.log('[Slider API] Processing item:', item.id, 'image_inner_background:', item.image_inner_background);
       return {
         id: item.id.toString(),
         imageUrl: item.image_url,
@@ -68,7 +63,6 @@ export async function GET() {
 
     return NextResponse.json({ sliders: activeSliders });
   } catch (error: any) {
-    console.error('Error fetching slider images:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to fetch slider images', sliders: [] },
       { status: 200 }

@@ -78,28 +78,10 @@ export default function RegisterPage() {
         router.push('/login');
       }
     } catch (error: any) {
-      console.error('❌ [REGISTER] Full error details:', {
-        error,
-        message: error.message,
-        code: error.code,
-        response: error.response?.data,
-        status: error.response?.status,
-        config: error.config,
-        stack: error.stack,
-      });
-      
       logger.error('Registration failed', error as Error);
       
       // Check if it's a network/connection error
       if (!error.response) {
-        console.error('🚨 [REGISTER] Network error detected:', {
-          code: error.code,
-          message: error.message,
-          isECONNREFUSED: error.code === 'ECONNREFUSED',
-          isNetworkError: error.message?.includes('Network Error'),
-          isFailedFetch: error.message?.includes('Failed to fetch'),
-        });
-        
         if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error') || error.message?.includes('Failed to fetch')) {
           toast.error('Cannot connect to server. Please make sure the backend server is running.');
         } else {
@@ -110,12 +92,6 @@ export default function RegisterPage() {
         const errorMessage = error.response?.data?.error 
           || error.response?.data?.message 
           || `Registration failed (${error.response?.status || 'unknown error'})`;
-        
-        console.error('❌ [REGISTER] Server error response:', {
-          status: error.response?.status,
-          data: error.response?.data,
-          errorMessage,
-        });
         
         toast.error(errorMessage);
       }

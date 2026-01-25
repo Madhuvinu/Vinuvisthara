@@ -51,22 +51,6 @@ export default function ProductCard({ product }: ProductCardProps) {
   // Show discount if MRP exists and is greater than final selling price
   const hasDiscount = discountPercent !== null && discountPercent > 0;
   
-  // Debug logging (remove in production)
-  if (process.env.NODE_ENV === 'development' && product.id) {
-    console.log(`ProductCard Debug [${product.id}]:`, {
-      name: product.name,
-      price,
-      mrp,
-      displayPrice,
-      discounted_price: product.discounted_price,
-      discountedPrice,
-      has_discount: product.has_discount,
-      discountPercent,
-      hasDiscount,
-      compare_at_price: product.compare_at_price,
-    });
-  }
-  
   const offerText = product.offer_text;
   const averageRating = product.average_rating || 0;
   const totalReviews = product.total_reviews || 0;

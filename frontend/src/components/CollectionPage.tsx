@@ -75,7 +75,6 @@ export default function CollectionPage({ slug }: CollectionPageProps) {
         logger.info('Products fetched successfully', { count: filteredProducts.length });
       } catch (error) {
         logger.error('Failed to fetch products from Laravel', error as Error);
-        console.error('Failed to fetch products:', error);
         setProducts([]);
       } finally {
         setLoading(false);

@@ -30,7 +30,7 @@ class FrontendLogger {
         this.logs = JSON.parse(stored).slice(-this.maxLogs);
       }
     } catch (error) {
-      console.error('Failed to load logs from storage', error);
+      // Failed to load logs - start with empty array
     }
   }
 
@@ -40,7 +40,7 @@ class FrontendLogger {
     try {
       localStorage.setItem('frontend_logs', JSON.stringify(this.logs.slice(-this.maxLogs)));
     } catch (error) {
-      console.error('Failed to save logs to storage', error);
+      // Failed to save logs - silently ignore (storage may be full)
     }
   }
 
@@ -148,7 +148,10 @@ class FrontendLogger {
   }
 
   debug(message: string, context?: Record<string, any>): void {
-    this.addLog(this.createLogEntry('DEBUG', message, context));
+    // Only log debug messages in development
+    if (process.env.NODE_ENV === 'development') {
+      this.addLog(this.createLogEntry('DEBUG', message, context));
+    }
   }
 
   info(message: string, context?: Record<string, any>): void {

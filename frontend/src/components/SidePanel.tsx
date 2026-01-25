@@ -32,7 +32,6 @@ export default function SidePanel() {
           }));
         setCollections(activeCollections);
       } catch (error) {
-        console.error('Failed to fetch collections:', error);
         setCollections([]);
       }
     };
