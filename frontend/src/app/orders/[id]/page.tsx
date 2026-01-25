@@ -24,13 +24,8 @@ export default function OrderDetailPage() {
 
   const loadOrder = async (id: string) => {
     try {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Loading order:', id);
-      }
+      logger.debug('Loading order', { orderId: id });
       const response = await api.getOrder(id);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Order response:', response);
-      }
       
       // Laravel returns order directly
       const orderData = response;

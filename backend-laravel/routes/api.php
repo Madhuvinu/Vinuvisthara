@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\ApiTokenController;
 use App\Http\Controllers\Api\SliderController;
 use App\Http\Controllers\Api\ProductReviewController;
+use App\Http\Controllers\Api\PaymentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -67,6 +68,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders/{id}', [OrderController::class, 'show']);
     Route::get('/orders/{id}/invoice', [OrderController::class, 'downloadInvoice']);
     Route::get('/orders', [OrderController::class, 'userOrders']);
+    
+    // Payments
+    Route::post('/payments/create-order', [PaymentController::class, 'createOrder']);
+    Route::post('/payments/verify', [PaymentController::class, 'verify']);
     
     // Product Reviews
     Route::post('/products/{id}/reviews', [ProductReviewController::class, 'store']);

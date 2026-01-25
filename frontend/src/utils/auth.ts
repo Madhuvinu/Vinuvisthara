@@ -43,16 +43,15 @@ export function isAuthenticated(): boolean {
           return true;
         }
       } catch (parseError) {
-        console.error('[Auth] Failed to parse auth', parseError);
+        // Invalid auth data - clear it
         localStorage.removeItem('auth');
       }
     }
     
     // No valid auth found
-    console.debug('[Auth] No valid authentication found');
     return false;
   } catch (error) {
-    console.error('[Auth] Auth check error:', error);
+    // Auth check failed - return false
     return false;
   }
 }
@@ -72,7 +71,7 @@ export function getCurrentUser(): any | null {
     
     return null;
   } catch (error) {
-    console.error('Get user error:', error);
+    // Failed to get user - return null
     return null;
   }
 }
@@ -143,7 +142,7 @@ export function refreshAuth(): void {
       }
     }
   } catch (error) {
-    console.error('Refresh auth error:', error);
+    // Refresh auth failed - silently ignore
   }
 }
 

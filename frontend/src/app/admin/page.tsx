@@ -64,7 +64,7 @@ export default function AdminPanel() {
             return (
               <a
                 key={section.name}
-                href={`http://localhost:8000${section.url}`}
+                href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${section.url}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100"
@@ -93,7 +93,7 @@ export default function AdminPanel() {
           </h2>
           <div className="flex flex-wrap gap-4">
             <a
-              href="http://localhost:8000/admin"
+              href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/admin`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-3 bg-purple-600 text-white font-poppins font-semibold rounded-lg hover:bg-purple-700 transition-colors"

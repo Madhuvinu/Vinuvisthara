@@ -60,31 +60,18 @@ export default function OrdersPage() {
         }
 
         // Fetch orders from backend
-        console.log('Fetching orders from backend...');
-        
         try {
           const { api } = await import('@/lib/api');
           const response = await api.getMyOrders();
-          console.log('Orders response:', response);
           
           // Backend returns { orders: [...] }
           const ordersData = response.orders || [];
-          console.log('Found orders:', ordersData.length);
           
           setOrders(ordersData);
         } catch (orderError: any) {
-          console.error('❌ Failed to fetch orders:', orderError);
-          console.error('Error details:', {
-            status: orderError.response?.status,
-            message: orderError.response?.data?.message || orderError.message,
-            data: orderError.response?.data
-          });
-          
           setOrders([]);
         }
       } catch (error: any) {
-        console.error('Failed to fetch orders:', error);
-        console.error('Error details:', error.response?.data || error.message);
         // Show error to user
         if (error.response?.status === 401) {
           router.push('/login');

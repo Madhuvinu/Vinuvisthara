@@ -21,6 +21,7 @@ export default function CheckoutPage() {
   const [discountCode, setDiscountCode] = useState('');
   const [applyingDiscount, setApplyingDiscount] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<any>(null);
+  const [paymentMethod, setPaymentMethod] = useState('cod');
   const [shippingAddress, setShippingAddress] = useState({
     address: '',
     city: '',
@@ -182,6 +183,64 @@ export default function CheckoutPage() {
     }
   };
 
+  const handleRazorpayPayment = async (orderData: any) => {
+    try {
+      // Create Razorpay order
+      const paymentOrder = await api.createPaymentOrder(orderData.id);
+
+      const options = {
+        key: paymentOrder.key,
+        amount: paymentOrder.amount,
+        currency: paymentOrder.currency,
+        name: 'Saree Store',
+        description: `Order ${orderData.orderNumber}`,
+        order_id: paymentOrder.order_id,
+        handler: async function (response: any) {
+          try {
+            // Verify payment
+            const verification = await api.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              order_id: orderData.id.toString(),
+            });
+
+            if (verification.success) {
+              toast.success(`Payment successful! Order #${orderData.orderNumber}`);
+              router.push(`/orders/${orderData.id}`);
+            } else {
+              toast.error('Payment verification failed');
+            }
+          } catch (error: any) {
+            logger.error('Payment verification error', error);
+            toast.error('Payment verification failed');
+          }
+        },
+        prefill: {
+          name: `${shippingAddress.email}`,
+          email: shippingAddress.email,
+          contact: shippingAddress.phone,
+        },
+        theme: {
+          color: '#8B1538',
+        },
+        modal: {
+          ondismiss: function() {
+            toast.error('Payment cancelled');
+            setLoading(false);
+          },
+        },
+      };
+
+      const razorpay = new (window as any).Razorpay(options);
+      razorpay.open();
+    } catch (error: any) {
+      logger.error('Razorpay payment error', error);
+      toast.error('Failed to initialize payment');
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cart || !cart.items || cart.items.length === 0) {
@@ -192,9 +251,9 @@ export default function CheckoutPage() {
     setLoading(true);
 
     try {
-      logger.info('Starting checkout process', { shippingAddress });
+      logger.info('Starting checkout process', { shippingAddress, paymentMethod });
 
-      // Create order directly using Laravel API
+      // Create order using Laravel API
       const orderData = await api.createOrder({
         shippingAddress: {
           address: shippingAddress.address,
@@ -204,27 +263,35 @@ export default function CheckoutPage() {
           phone: shippingAddress.phone,
           email: shippingAddress.email,
         },
+        paymentMethod: paymentMethod,
         notes: '',
       });
 
       logger.info('Order created successfully', { 
         orderId: orderData.id,
         orderNumber: orderData.orderNumber,
+        paymentMethod: orderData.paymentMethod,
       });
 
-      // Clear cart
-      await api.clearCart();
+      if (paymentMethod === 'razorpay') {
+        // Handle Razorpay payment
+        await handleRazorpayPayment(orderData);
+      } else {
+        // COD - order already confirmed
+        // Clear cart
+        await api.clearCart();
 
-      // Show success message
-      toast.success(`Order placed successfully! Order #${orderData.orderNumber}`);
+        // Show success message
+        toast.success(`Order placed successfully! Order #${orderData.orderNumber}`);
 
-      // Redirect to order confirmation page
-      router.push(`/orders/${orderData.id}`);
+        // Redirect to order confirmation page
+        router.push(`/orders/${orderData.id}`);
+        setLoading(false);
+      }
     } catch (error: any) {
       logger.error('Checkout error', error as Error);
       const errorMessage = error.response?.data?.error || error.message || 'Checkout failed';
       toast.error(errorMessage);
-    } finally {
       setLoading(false);
     }
   };
@@ -515,7 +582,7 @@ export default function CheckoutPage() {
                   Processing...
                 </span>
               ) : (
-                'Place Order (Cash on Delivery)'
+                paymentMethod === 'razorpay' ? 'Pay Now' : 'Place Order (Cash on Delivery)'
               )}
             </button>
           </div>

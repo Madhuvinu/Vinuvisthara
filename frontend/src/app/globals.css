@@ -4,6 +4,118 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  /* CRITICAL FIX: Override global img height: auto rule for hero slider */
+  .slider-hero-image,
+  .slider-hero-image-mobile {
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+    width: 100% !important;
+    object-fit: cover !important;
+  }
+}
+
+/* MOBILE EMERGENCY FIX - Override all global img styles */
+@media (max-width: 640px) {
+  img.slider-hero-image,
+  img.slider-hero-image-mobile,
+  .hero-slider-section img,
+  .hero-slider-section .slider-hero-image,
+  .hero-slider-section .slider-hero-image-mobile {
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+    width: 100% !important;
+    object-fit: cover !important;
+    display: block !important;
+  }
+  
+  .hero-slider-section {
+    min-height: 200px !important;
+    display: block !important;
+    margin-top: -8px !important;
+    padding-top: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    border-top: none !important;
+  }
+  
+  /* Remove gap between header and slider - very aggressive */
+  header + main .hero-slider-section,
+  main > section:first-child.hero-slider-section,
+  section.hero-slider-section:first-of-type {
+    margin-top: -8px !important;
+    border-top: none !important;
+  }
+  
+  /* Ensure header doesn't create gap */
+  header {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    border-bottom: none !important;
+  }
+  
+  /* Remove any spacing from main */
+  main {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+  
+  /* Ensure no border or line between header and slider */
+  header ~ main .hero-slider-section,
+  header + * .hero-slider-section {
+    margin-top: -8px !important;
+    border-top: none !important;
+  }
+  
+  /* Remove any potential line from body or html */
+  body > main > section:first-child.hero-slider-section {
+    margin-top: -8px !important;
+    border-top: none !important;
+  }
+  
+  .hero-slider-section > div:first-child {
+    min-height: 200px !important;
+    height: 200px !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  /* Force aspect-ratio to be ignored on mobile */
+  .hero-slider-section [class*="aspect-"] {
+    aspect-ratio: unset !important;
+  }
+  
+  /* Remove any top spacing that might cause white space */
+  main > section:first-child.hero-slider-section {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  /* Ensure main doesn't add padding on mobile */
+  main {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  
+  main > section:first-child {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
@@ -24,11 +136,28 @@ body {
   background: #ffffff;
   min-height: 100vh;
   font-family: 'Poppins', sans-serif;
+  /* Custom cursor only on desktop (not mobile/PWA) */
   cursor: none;
 }
 
-* {
-  cursor: none !important;
+/* Custom cursor only on desktop - disable on touch devices */
+@media (hover: hover) and (pointer: fine) {
+  * {
+    cursor: none !important;
+  }
+}
+
+/* Mobile/PWA optimizations */
+@media (max-width: 768px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+  
+  a, button {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  }
 }
 
 @layer utilities {
@@ -106,9 +235,49 @@ body {
     will-change: transform;
   }
 
-  /* Smooth scroll behavior */
+  /* Smooth scroll behavior - optimized for mobile */
   html {
     scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Better scrolling on mobile */
+  @media (max-width: 768px) {
+    body {
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Ensure hero slider is full width on mobile - break out of container */
+    .hero-slider-section {
+      width: 100vw !important;
+      position: relative !important;
+      left: 50% !important;
+      right: 50% !important;
+      margin-left: -50vw !important;
+      margin-right: -50vw !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+    
+    /* Fix text overflow in hero slider - prevent repetition */
+    .hero-slider-section h1,
+    .hero-slider-section h1 > span {
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      white-space: normal !important;
+      max-width: 100% !important;
+      display: block !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    
+    /* Ensure text container doesn't cause overflow */
+    .hero-slider-section .relative.z-10 {
+      max-width: 100% !important;
+      padding-left: 0.5rem !important;
+      padding-right: 0.5rem !important;
+    }
   }
 
   /* Fade in on scroll */
@@ -223,5 +392,328 @@ body {
   .collection-card:hover .collection-card-image {
     animation: none;
     transform: scale(1.1);
+  }
+  
+  /* Responsive category cards positioning for mobile/PWA */
+  .category-cards-container {
+    bottom: -120px;
+  }
+  
+  @media (min-width: 640px) {
+    .category-cards-container {
+      bottom: -188px;
+    }
+  }
+  
+  .category-cards-spacer {
+    height: 120px;
+  }
+  
+  @media (min-width: 640px) {
+    .category-cards-spacer {
+      height: 188px;
+    }
+  }
+  
+  /* CRITICAL: Override global img { height: auto } rule for slider images */
+  .slider-hero-image,
+  .slider-hero-image-mobile {
+    height: 100% !important; /* Override global height: auto */
+    width: 100% !important; /* Ensure full width */
+    top: 0 !important; /* Touch top edge */
+    left: 0 !important; /* Touch left edge */
+    right: 0 !important; /* Touch right edge */
+    bottom: 0 !important; /* Touch bottom edge */
+  }
+
+  /* Mobile-specific adjustments for slider images */
+  @media (max-width: 639px) {
+    /* Remove zoom on mobile to ensure complete image visibility */
+    .slider-image-zoom {
+      transform: none !important; /* No zoom/scale on mobile */
+    }
+    
+    /* CRITICAL: Force height: 100% on mobile to override global img rule */
+    .slider-hero-image,
+    .slider-hero-image-mobile {
+      height: 100% !important;
+      min-height: 100% !important;
+      max-height: 100% !important;
+    }
+    
+    /* CRITICAL: Force object-fit: cover on mobile (override admin fill value) */
+    .slider-hero-image,
+    .slider-hero-image-mobile {
+      object-fit: cover !important;
+    }
+    
+    /* Force center center on mobile for proper fill */
+    .slider-hero-image,
+    .slider-hero-image-mobile {
+      object-position: center center !important;
+    }
+  }
+  
+  /* Category Section with background image */
+  .category-section {
+    position: relative;
+    z-index: 2;
+    background: transparent;
+  }
+
+  /* Gold ornate frame – thin overlay on each category card. Does NOT change card size. */
+  .category-card {
+    --gold-light: #f6c453;
+    --gold-mid: #d4a13a;
+    --gold-dark: #8b5a12;
+  }
+  .category-card::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 14px;
+    border: 4px solid transparent;
+    background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-mid) 40%, var(--gold-dark) 70%, var(--gold-mid) 100%) border-box;
+    -webkit-mask: linear-gradient(#fff, #fff) padding-box, linear-gradient(#fff, #fff);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff, #fff) padding-box, linear-gradient(#fff, #fff);
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 1;
+    box-shadow:
+      0 0 0 1px rgba(139, 90, 18, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: box-shadow 0.3s ease;
+  }
+  .category-card:hover::before,
+  .category-card:focus-visible::before {
+    box-shadow:
+      0 0 0 1px var(--gold-mid),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      0 0 16px rgba(246, 196, 83, 0.5);
+  }
+
+  /* Golden butterflies flying upward and left-to-right in category section */
+  @keyframes butterfly-fly-up {
+    0% {
+      left: var(--start-x, -5%);
+      transform: translateY(0) rotate(-5deg) scale(0.9);
+      opacity: 0;
+    }
+    3% {
+      opacity: 1;
+    }
+    50% {
+      left: calc(var(--start-x, -5%) + (var(--end-x, 105%) - var(--start-x, -5%)) * 0.5);
+      transform: translateY(-50vh) rotate(8deg) scale(1.1);
+      opacity: 1;
+    }
+    97% {
+      opacity: 1;
+    }
+    100% {
+      left: var(--end-x, 105%);
+      transform: translateY(-100vh) rotate(-3deg) scale(0.9);
+      opacity: 0;
+    }
+  }
+
+  @keyframes butterfly-fly-up-sine {
+    0% {
+      left: var(--start-x, -5%);
+      transform: translateY(0) rotate(5deg) scale(0.9);
+      opacity: 0;
+    }
+    3% {
+      opacity: 1;
+    }
+    25% {
+      left: calc(var(--start-x, -5%) + (var(--end-x, 105%) - var(--start-x, -5%)) * 0.25);
+      transform: translateY(-25vh) rotate(-6deg) scale(1);
+      opacity: 1;
+    }
+    50% {
+      left: calc(var(--start-x, -5%) + (var(--end-x, 105%) - var(--start-x, -5%)) * 0.5);
+      transform: translateY(-50vh) rotate(7deg) scale(1.1);
+      opacity: 1;
+    }
+    75% {
+      left: calc(var(--start-x, -5%) + (var(--end-x, 105%) - var(--start-x, -5%)) * 0.75);
+      transform: translateY(-75vh) rotate(-5deg) scale(1);
+      opacity: 1;
+    }
+    97% {
+      opacity: 1;
+    }
+    100% {
+      left: var(--end-x, 105%);
+      transform: translateY(-100vh) rotate(4deg) scale(0.9);
+      opacity: 0;
+    }
+  }
+
+  @keyframes butterfly-shimmer {
+    0%, 100% {
+      filter: brightness(1) drop-shadow(0 0 3px rgba(245, 213, 110, 0.8));
+      opacity: 1;
+    }
+    25% {
+      filter: brightness(1.4) drop-shadow(0 0 6px rgba(245, 213, 110, 1)) drop-shadow(0 0 12px rgba(212, 161, 58, 0.7));
+      opacity: 1;
+    }
+    50% {
+      filter: brightness(1.2) drop-shadow(0 0 4px rgba(245, 213, 110, 0.9));
+      opacity: 1;
+    }
+    75% {
+      filter: brightness(1.5) drop-shadow(0 0 8px rgba(245, 213, 110, 1)) drop-shadow(0 0 15px rgba(212, 161, 58, 0.8));
+      opacity: 1;
+    }
+  }
+
+  .butterfly-fly-up {
+    animation: butterfly-fly-up linear infinite;
+    will-change: transform, opacity;
+  }
+
+  .butterfly-fly-up.butterfly-sine {
+    animation-name: butterfly-fly-up-sine;
+  }
+
+  .butterfly-shimmer {
+    animation: butterfly-shimmer 1.5s ease-in-out infinite;
+    will-change: filter, opacity;
+  }
+
+  /* Rat with saree animations */
+  @keyframes rat-run {
+    0% {
+      left: -120px;
+      transform: scaleX(1);
+    }
+    48% {
+      left: calc(100% - 20px);
+      transform: scaleX(1);
+    }
+    50% {
+      left: calc(100% - 20px);
+      transform: scaleX(-1);
+    }
+    98% {
+      left: -120px;
+      transform: scaleX(-1);
+    }
+    100% {
+      left: -120px;
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes rat-run-slow {
+    0% {
+      left: -55px;
+      transform: scaleX(1);
+    }
+    48% {
+      left: calc(100% - 0px);
+      transform: scaleX(1);
+    }
+    50% {
+      left: calc(100% - 0px);
+      transform: scaleX(-1);
+    }
+    98% {
+      left: -55px;
+      transform: scaleX(-1);
+    }
+    100% {
+      left: -55px;
+      transform: scaleX(1);
+    }
+  }
+
+  .rat-run {
+    animation: rat-run 12s ease-in-out infinite;
+    will-change: left, transform;
+  }
+
+  .rat-run-slow {
+    animation: rat-run-slow 35s ease-in-out infinite;
+    will-change: left, transform;
+  }
+
+  @keyframes rat-walking {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    25% {
+      transform: translateY(-3px);
+    }
+    50% {
+      transform: translateY(0);
+    }
+    75% {
+      transform: translateY(-3px);
+    }
+  }
+
+  .rat-walking {
+    animation: rat-walking 0.5s ease-in-out infinite;
+    transform-origin: center bottom;
+  }
+
+  /* Rat wrapper for combining running and walking animations */
+  .rat-wrapper {
+    z-index: 1;
+    position: relative;
+  }
+  
+  /* Ensure the wrapper handles the horizontal movement and flip */
+  .rat-wrapper.rat-run-slow {
+    animation: rat-run-slow 35s ease-in-out infinite;
+    will-change: left, transform;
+  }
+  
+  /* The image inside only does the vertical walking bounce */
+  .rat-wrapper .rat-walking {
+    animation: rat-walking 0.5s ease-in-out infinite;
+  }
+
+  @keyframes banner-float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+
+  @keyframes banner-shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .banner-float {
+    animation: banner-float 2s ease-in-out infinite;
+  }
+
+  .banner-shimmer {
+    animation: banner-shimmer 3s ease-in-out infinite;
+  }
+
+  .banner-flow-container {
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  }
+
+  .rat-banner {
+    z-index: 1;
+  }
+
+  .rat-with-saree {
+    z-index: 2;
   }
 }

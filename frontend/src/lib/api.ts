@@ -4,14 +4,7 @@ import { logger } from '../utils/logger';
 // All APIs now use Laravel backend (port 8000)
 const LARAVEL_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-// Debug: Log API URL on client side (development only)
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  console.log('🔍 API Client initialized:', {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-    LARAVEL_API_URL,
-    baseURL: `${LARAVEL_API_URL}/api`,
-  });
-}
+// API Client initialization - logger handles all logging
 
 class ApiClient {
   private client: AxiosInstance;
@@ -47,16 +40,6 @@ class ApiClient {
           }
         }
 
-        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-          console.log('📤 [API] Request:', {
-            method: config.method?.toUpperCase(),
-            url: config.url,
-            baseURL: config.baseURL,
-            fullURL: `${config.baseURL}${config.url}`,
-            hasAuth: !!config.headers.Authorization,
-          });
-        }
-
         logger.debug('API request', {
           method: config.method,
           url: config.url,
@@ -67,9 +50,6 @@ class ApiClient {
         return config;
       },
       (error) => {
-        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-          console.error('❌ [API] Request Error:', error);
-        }
         logger.error('API request error', error);
         return Promise.reject(error);
       }
@@ -78,14 +58,6 @@ class ApiClient {
     // Response interceptor
     this.client.interceptors.response.use(
       (response) => {
-        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-          console.log('✅ [API] Response:', {
-            method: response.config.method?.toUpperCase(),
-            url: response.config.url,
-            status: response.status,
-            baseURL: response.config.baseURL,
-          });
-        }
         logger.debug('API response', {
           method: response.config.method,
           url: response.config.url,
@@ -95,21 +67,6 @@ class ApiClient {
       },
       (error: AxiosError) => {
         const errorMessage = error.response?.data || error.message;
-        
-        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-          console.error('❌ [API] Response Error:', {
-            method: error.config?.method?.toUpperCase(),
-            url: error.config?.url,
-            baseURL: error.config?.baseURL,
-            fullURL: error.config ? `${error.config.baseURL}${error.config.url}` : 'unknown',
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            code: error.code,
-            message: error.message,
-            responseData: error.response?.data,
-            isNetworkError: !error.response,
-          });
-        }
         
         logger.error('API response error', error, {
           method: error.config?.method,
@@ -128,10 +85,6 @@ class ApiClient {
             isECONNREFUSED: error.code === 'ECONNREFUSED',
             isNetworkError: error.message?.includes('Network Error') || error.message?.includes('ERR_CONNECTION_REFUSED'),
           };
-          
-          if (typeof window !== 'undefined') {
-            console.error('🚨 [API] Network Error - Backend may not be running:', networkError);
-          }
           
           logger.error('Network error - backend server may not be running', networkError);
         }
@@ -168,46 +121,25 @@ class ApiClient {
         phone: data.phone,
       };
       
-      console.log('🔍 [API] Register request:', {
+      logger.info('API register request', {
         email: data.email,
         baseURL: this.client.defaults.baseURL,
         url: '/auth/register',
         fullURL,
-        payload: { ...payload, password: '***' }, // Don't log password
-        headers: this.client.defaults.headers,
       });
       
       const response = await this.client.post('/auth/register', payload);
       
-      console.log('✅ [API] Register response:', { 
-        status: response.status, 
-        data: response.data,
-        headers: response.headers,
+      logger.info('API register response', { 
+        status: response.status,
       });
       return response.data;
     } catch (error: any) {
-      console.error('❌ [API] Register error - FULL DETAILS:', {
+      logger.error('API register error', error, {
         message: error.message,
         code: error.code,
-        name: error.name,
-        response: error.response ? {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          data: error.response.data,
-          headers: error.response.headers,
-        } : null,
-        request: error.config ? {
-          method: error.config.method,
-          url: error.config.url,
-          baseURL: error.config.baseURL,
-          headers: error.config.headers,
-          data: error.config.data,
-        } : null,
+        response: error.response?.status,
         baseURL: this.client.defaults.baseURL,
-        fullURL: `${this.client.defaults.baseURL}/auth/register`,
-        isNetworkError: !error.response,
-        isTimeout: error.code === 'ECONNABORTED',
-        stack: error.stack,
       });
       throw error;
     }
@@ -216,12 +148,6 @@ class ApiClient {
   async login(email: string, password: string) {
     try {
       const fullURL = `${this.client.defaults.baseURL}/auth/login`;
-      console.log('🔍 [API] Login request:', {
-        email,
-        baseURL: this.client.defaults.baseURL,
-        url: '/auth/login',
-        fullURL,
-      });
       
       logger.info('API login request', { 
         email, 
@@ -232,20 +158,9 @@ class ApiClient {
       
       const response = await this.client.post('/auth/login', { email, password });
       
-      console.log('✅ [API] Login response:', { status: response.status, data: response.data });
       logger.info('API login response', { status: response.status });
       return response.data;
     } catch (error: any) {
-      console.error('❌ [API] Login error:', {
-        message: error.message,
-        code: error.code,
-        response: error.response?.status,
-        data: error.response?.data,
-        baseURL: this.client.defaults.baseURL,
-        fullURL: `${this.client.defaults.baseURL}/auth/login`,
-        stack: error.stack,
-      });
-      
       logger.error('API login error', error, {
         message: error.message,
         code: error.code,
@@ -493,32 +408,42 @@ class ApiClient {
       phone: string;
       email?: string;
     };
+    paymentMethod?: string;
     notes?: string;
   }) {
     const response = await this.client.post('/orders/create', data);
     return response.data;
   }
 
+  // Payment endpoints
+  async createPaymentOrder(orderId: string) {
+    const response = await this.client.post('/payments/create-order', {
+      order_id: orderId,
+    });
+    return response.data;
+  }
+
+  async verifyPayment(data: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+    order_id: string;
+  }) {
+    const response = await this.client.post('/payments/verify', data);
+    return response.data;
+  }
+
   async getMyOrders() {
     try {
-      console.log('🔍 [API] Fetching orders...');
+      logger.debug('Fetching orders');
       const response = await this.client.get('/orders');
-      console.log('✅ [API] Orders response:', { 
-        status: response.status,
-        dataType: Array.isArray(response.data) ? 'array' : typeof response.data,
-        dataLength: Array.isArray(response.data) ? response.data.length : 'N/A',
-      });
       
       // Backend returns array directly, wrap it
       const orders = Array.isArray(response.data) ? response.data : (response.data.orders || []);
+      logger.debug('Orders fetched', { count: orders.length });
       return { orders };
     } catch (error: any) {
-      console.error('❌ [API] Failed to fetch orders:', {
-        message: error.message,
-        code: error.code,
-        status: error.response?.status,
-        data: error.response?.data,
-      });
+      logger.error('Failed to fetch orders', error);
       throw error;
     }
   }

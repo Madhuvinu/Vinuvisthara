@@ -16,8 +16,6 @@ export async function GET(
     // Get auth token from request headers
     const authHeader = request.headers.get('authorization');
     
-    console.log('Fetching order from Laravel:', orderId);
-    
     // Fetch order from Laravel API
     const orderResponse = await fetch(`${LARAVEL_API_URL}/api/orders/${orderId}`, {
       headers: {
@@ -29,7 +27,6 @@ export async function GET(
 
     if (!orderResponse.ok) {
       const errorText = await orderResponse.text();
-      console.error('Laravel order fetch failed:', orderResponse.status, errorText);
       return NextResponse.json(
         { error: `Order not found: ${orderResponse.status}` },
         { status: orderResponse.status }
@@ -40,14 +37,11 @@ export async function GET(
     const order = orderData;
     
     if (!order || !order.id) {
-      console.error('Invalid order data:', orderData);
       return NextResponse.json(
         { error: 'Invalid order data received' },
         { status: 500 }
       );
     }
-    
-    console.log('Order fetched successfully:', order.id, order.order_number || order.orderNumber);
 
     // Generate PDF invoice using buffer approach
     const chunks: Buffer[] = [];
@@ -62,7 +56,6 @@ export async function GET(
     });
     
     doc.on('error', (error) => {
-      console.error('PDF generation error:', error);
       throw error;
     });
 
@@ -187,18 +180,15 @@ export async function GET(
             })
           );
         } catch (error) {
-          console.error('Error creating response:', error);
           reject(error);
         }
       });
       
       doc.on('error', (error) => {
-        console.error('PDF generation error:', error);
         reject(error);
       });
     });
   } catch (error: any) {
-    console.error('Invoice generation error:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to generate invoice' },
       { status: 500 }

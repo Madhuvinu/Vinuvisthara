@@ -33,15 +33,25 @@ class SliderImageResource extends Resource
                             ->image()
                             ->imageEditor()
                             ->imageEditorAspectRatios([
-                                '16:9',
-                                '21:9',
+                                null => 'Free (no crop)',
+                                '16:9' => '16:9',
+                                '21:9' => '21:9',
                             ])
-                            ->required()
+                            ->imageEditorEmptyFillColor('#ffffff')
+                            ->rules(function ($livewire) {
+                                if (!isset($livewire->record) || !$livewire->record || !$livewire->record->exists) {
+                                    return ['required'];
+                                }
+                                $imageUrl = $livewire->record->getRawOriginal('image_url') ?? null;
+                                return empty($imageUrl) ? ['required'] : ['sometimes'];
+                            })
+                            ->live()
                             ->disk('public')
                             ->directory('slider-images')
                             ->visibility('public')
                             ->maxSize(5120) // 5MB
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                            ->helperText('Upload any image. Use "Free (no crop)" to preserve full image. Adjust fit/position/zoom below.')
                             ->columnSpanFull(),
                         
                         Forms\Components\TextInput::make('title')
@@ -72,6 +82,12 @@ class SliderImageResource extends Resource
                             ->placeholder('#ffffff')
                             ->helperText('Background color for the button (e.g., #ffffff for white, #000000 for black)'),
                         
+                        Forms\Components\TextInput::make('banner_text')
+                            ->label('Rat Banner Text')
+                            ->placeholder('Bumper Offer 50% Off')
+                            ->helperText('Text to display on the animated rat banner (e.g., Bumper Offer 50% Off, Special Discount, etc.)')
+                            ->maxLength(100),
+                        
                         Forms\Components\ColorPicker::make('gradient_color_1')
                             ->label('Gradient Color 1')
                             ->placeholder('#ffffff')
@@ -97,6 +113,241 @@ class SliderImageResource extends Resource
                             ->placeholder('#1f2937')
                             ->helperText('Background color for the header/navbar when this slider is active'),
                     ])->columns(2),
+                
+                Forms\Components\Section::make('Image fit & position (Desktop/Tablet)')
+                    ->description('Adjust how the image fits in the slider on desktop and tablet. Preview updates live.')
+                    ->schema([
+                        Forms\Components\Select::make('object_fit')
+                            ->label('Fit')
+                            ->options([
+                                'contain' => 'Contain (no cropping - full image visible)',
+                                'cover' => 'Cover (fill frame, may crop edges)',
+                                'fill' => 'Fill (stretch to fill)',
+                                'scale-down' => 'Scale down (contain or none)',
+                            ])
+                            ->default('contain')
+                            ->live()
+                            ->helperText('Use "Contain" to prevent cropping. Use zoom < 1 to fit entire image inside frame.')
+                            ->required(),
+                        Forms\Components\Select::make('object_position')
+                            ->label('Position')
+                            ->options([
+                                'center' => 'Center',
+                                'top' => 'Top',
+                                'bottom' => 'Bottom',
+                                'left' => 'Left',
+                                'right' => 'Right',
+                                'top left' => 'Top left',
+                                'top right' => 'Top right',
+                                'bottom left' => 'Bottom left',
+                                'bottom right' => 'Bottom right',
+                            ])
+                            ->default('center')
+                            ->live()
+                            ->required(),
+                        Forms\Components\TextInput::make('image_zoom')
+                            ->label('Zoom')
+                            ->numeric()
+                            ->minValue(0.5)
+                            ->maxValue(2)
+                            ->step(0.1)
+                            ->default(1)
+                            ->live()
+                            ->suffix('×')
+                            ->helperText('1 = normal. <1 = zoom out, >1 = zoom in.'),
+                        Forms\Components\View::make('filament.forms.slider-fit-preview')
+                            ->viewData(fn ($get, $livewire) => [
+                                'previewUrl' => method_exists($livewire, 'getSliderPreviewImageUrl')
+                                    ? $livewire->getSliderPreviewImageUrl()
+                                    : null,
+                                'objectFit' => $get('object_fit') ?? 'cover',
+                                'objectPosition' => $get('object_position') ?? 'center',
+                                'zoom' => (float) ($get('image_zoom') ?? 1),
+                            ])
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
+                
+                Forms\Components\Section::make('Mobile View Settings')
+                    ->description('Override settings specifically for mobile devices (< 640px). Leave empty to use desktop settings.')
+                    ->schema([
+                        Forms\Components\FileUpload::make('mobile_image_url')
+                            ->label('Mobile Image (Optional)')
+                            ->image()
+                            ->imageEditor()
+                            ->imageEditorAspectRatios([
+                                null => 'Free (no crop)',
+                                '16:9' => '16:9',
+                                '21:9' => '21:9',
+                            ])
+                            ->imageEditorEmptyFillColor('#ffffff')
+                            ->live()
+                            ->disk('public')
+                            ->directory('slider-images/mobile')
+                            ->visibility('public')
+                            ->maxSize(5120) // 5MB
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                            ->helperText('Upload a separate image optimized for mobile view. If not provided, desktop image will be used.')
+                            ->columnSpanFull(),
+                        
+                        Forms\Components\TextInput::make('mobile_height')
+                            ->label('Mobile Height')
+                            ->rules(['nullable', 'numeric', 'min:20', 'max:1000'])
+                            ->suffix('px')
+                            ->default(null)
+                            ->placeholder('Auto (use aspect ratio)')
+                            ->helperText('Set fixed height in pixels for mobile (20-1000px). Leave empty for automatic height based on aspect ratio.'),
+                        
+                        Forms\Components\Select::make('mobile_object_fit')
+                            ->label('Mobile Fit')
+                            ->options([
+                                'cover' => 'Cover (recommended - fills container)',
+                                'contain' => 'Contain (no cropping)',
+                                'fill' => 'Fill (stretch)',
+                                'scale-down' => 'Scale down',
+                            ])
+                            ->default(null)
+                            ->placeholder('Use desktop setting')
+                            ->helperText('Mobile-specific object-fit. "Cover" is recommended for mobile to fill the container properly.')
+                            ->live(),
+                        
+                        Forms\Components\Select::make('mobile_object_position')
+                            ->label('Mobile Position')
+                            ->options([
+                                'center center' => 'Center Center (recommended)',
+                                'center' => 'Center',
+                                'top' => 'Top',
+                                'bottom' => 'Bottom',
+                                'left' => 'Left',
+                                'right' => 'Right',
+                                'top left' => 'Top Left',
+                                'top right' => 'Top Right',
+                                'bottom left' => 'Bottom Left',
+                                'bottom right' => 'Bottom Right',
+                                'left center' => 'Left Center',
+                                'right center' => 'Right Center',
+                            ])
+                            ->default(null)
+                            ->placeholder('Use desktop setting')
+                            ->helperText('Mobile-specific image position. "Center Center" is recommended for mobile.')
+                            ->live(),
+                        
+                        Forms\Components\TextInput::make('mobile_image_zoom')
+                            ->label('Mobile Zoom')
+                            ->numeric()
+                            ->minValue(0.5)
+                            ->maxValue(2)
+                            ->step(0.1)
+                            ->default(null)
+                            ->placeholder('Use desktop zoom')
+                            ->suffix('×')
+                            ->helperText('Mobile-specific zoom. Usually keep at 1.0 for mobile to show complete image.'),
+                        
+                        Forms\Components\View::make('filament.forms.slider-mobile-preview')
+                            ->viewData(fn ($get, $livewire) => [
+                                'previewUrl' => method_exists($livewire, 'getSliderPreviewImageUrl')
+                                    ? $livewire->getSliderPreviewImageUrl()
+                                    : null,
+                                'mobilePreviewUrl' => method_exists($livewire, 'getMobilePreviewImageUrl')
+                                    ? $livewire->getMobilePreviewImageUrl()
+                                    : null,
+                                'objectFit' => $get('mobile_object_fit') ?? ($get('object_fit') ?? 'cover'),
+                                'objectPosition' => $get('mobile_object_position') ?? ($get('object_position') ?? 'center center'),
+                                'zoom' => (float) ($get('mobile_image_zoom') ?? $get('image_zoom') ?? 1),
+                                'mobileHeight' => $get('mobile_height'),
+                            ])
+                            ->columnSpanFull(),
+                        
+                        Forms\Components\Section::make('Mobile Padding')
+                            ->description('Add padding inside the slider container on mobile')
+                            ->schema([
+                                Forms\Components\TextInput::make('mobile_padding_top')
+                                    ->label('Padding Top')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->maxValue(200)
+                                    ->default(0)
+                                    ->suffix('px')
+                                    ->helperText('Padding from top edge'),
+                                
+                                Forms\Components\TextInput::make('mobile_padding_right')
+                                    ->label('Padding Right')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->maxValue(200)
+                                    ->default(0)
+                                    ->suffix('px')
+                                    ->helperText('Padding from right edge'),
+                                
+                                Forms\Components\TextInput::make('mobile_padding_bottom')
+                                    ->label('Padding Bottom')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->maxValue(200)
+                                    ->default(0)
+                                    ->suffix('px')
+                                    ->helperText('Padding from bottom edge'),
+                                
+                                Forms\Components\TextInput::make('mobile_padding_left')
+                                    ->label('Padding Left')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->maxValue(200)
+                                    ->default(0)
+                                    ->suffix('px')
+                                    ->helperText('Padding from left edge'),
+                            ])
+                            ->columns(2)
+                            ->collapsible()
+                            ->collapsed(),
+                        
+                        Forms\Components\Section::make('Mobile Margin & Positioning')
+                            ->description('Adjust margins to move slider up/down/left/right. Use negative values to move up/left and cover white space.')
+                            ->schema([
+                                Forms\Components\TextInput::make('mobile_margin_top')
+                                    ->label('Margin Top')
+                                    ->numeric()
+                                    ->rules(['nullable', 'numeric', 'min:-200', 'max:200'])
+                                    ->default(0)
+                                    ->suffix('px')
+                                    ->helperText('Negative values move slider UP to cover top white space. Positive adds space.'),
+                                
+                                Forms\Components\TextInput::make('mobile_margin_right')
+                                    ->label('Margin Right')
+                                    ->numeric()
+                                    ->rules(['nullable', 'numeric', 'min:-200', 'max:200'])
+                                    ->default(0)
+                                    ->suffix('px')
+                                    ->helperText('Negative values move slider LEFT. Positive adds space.'),
+                                
+                                Forms\Components\TextInput::make('mobile_margin_bottom')
+                                    ->label('Margin Bottom')
+                                    ->numeric()
+                                    ->rules(['nullable', 'numeric', 'min:-200', 'max:200'])
+                                    ->default(0)
+                                    ->suffix('px')
+                                    ->helperText('Negative values move slider UP. Positive adds space.'),
+                                
+                                Forms\Components\TextInput::make('mobile_margin_left')
+                                    ->label('Margin Left')
+                                    ->numeric()
+                                    ->rules(['nullable', 'numeric', 'min:-200', 'max:200'])
+                                    ->default(0)
+                                    ->suffix('px')
+                                    ->helperText('Negative values move slider RIGHT. Positive adds space.'),
+                                
+                                Forms\Components\Toggle::make('mobile_full_width')
+                                    ->label('Full Width (Remove Side Margins)')
+                                    ->default(false)
+                                    ->helperText('Enable to make slider span full screen width, removing side margins/padding.')
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(2)
+                            ->collapsible(),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
                 
                 Forms\Components\Section::make('Card Background Settings')
                     ->description('Control the background colors of the hero image card')

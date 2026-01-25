@@ -37,6 +37,13 @@ _custom_backend_models/*.map
 *.swo
 *~
 
+# Editor temporary files (Untitled, etc.)
+**/Untitled
+**/Untitled.*
+*Untitled*
+*.sublime-*
+*.code-workspace
+
 # OS
 .DS_Store
 Thumbs.db
@@ -60,7 +67,8 @@ coverage/
 
 # Scripts and documentation (removed from repo)
 *.sh
-*.md
+# Keep important documentation like RAZORPAY_SETUP.md
+!RAZORPAY_SETUP.md
 
 # Uploads and media (keep structure but ignore content)
 uploads/
@@ -69,3 +77,22 @@ public/uploads/
 # Backups
 *.backup
 *_backup_*.sql
+
+# Laravel specific
+backend-laravel/storage/*.key
+backend-laravel/bootstrap/cache/*
+backend-laravel/.env
+backend-laravel/.env.backup
+backend-laravel/.env.production
+
+# Frontend specific
+frontend/.next/
+frontend/.env.local
+frontend/.env.production.local
+frontend/.env.development.local
+frontend/out/
+frontend/.vercel/
+
+# PWA build files
+frontend/public/workbox-*.js
+frontend/public/sw.js.map

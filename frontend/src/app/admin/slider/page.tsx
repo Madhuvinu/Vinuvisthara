@@ -8,7 +8,8 @@ export default function SliderManagement() {
 
   useEffect(() => {
     // Redirect to Laravel Filament admin panel for slider management
-    window.location.href = 'http://localhost:8000/admin/slider-images';
+    const adminUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/admin/slider-images`;
+    window.location.href = adminUrl;
   }, [router]);
 
   return (
@@ -26,7 +27,7 @@ export default function SliderManagement() {
         <p className="text-sm text-gray-500 font-poppins mt-4">
           If you are not redirected automatically,{' '}
           <a 
-            href="http://localhost:8000/admin/slider-images" 
+            href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/admin/slider-images`}
             className="text-purple-600 hover:underline"
             target="_blank"
             rel="noopener noreferrer"

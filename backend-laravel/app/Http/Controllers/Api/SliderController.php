@@ -26,6 +26,15 @@ class SliderController extends Controller
                     $imageUrl = asset('storage/' . $imageUrl);
                 }
                 
+                // Handle mobile image URL
+                $mobileImageUrl = $slider->getRawOriginal('mobile_image_url');
+                if (is_array($mobileImageUrl)) {
+                    $mobileImageUrl = !empty($mobileImageUrl) ? $mobileImageUrl[0] : null;
+                }
+                if ($mobileImageUrl && !str_starts_with($mobileImageUrl, 'http')) {
+                    $mobileImageUrl = asset('storage/' . $mobileImageUrl);
+                }
+                
                 // Get all additional images
                 $additionalImages = $slider->images->map(function ($item) {
                     $itemImageUrl = $item->image_url;
@@ -64,11 +73,29 @@ class SliderController extends Controller
                     'title' => $slider->title,
                     'description' => $slider->description,
                     'image_url' => $imageUrl,
+                    'object_fit' => $slider->object_fit ?? 'cover',
+                    'object_position' => $slider->object_position ?? 'center',
+                    'image_zoom' => (float) ($slider->image_zoom ?? 1),
+                    'mobile_object_fit' => $slider->mobile_object_fit,
+                    'mobile_object_position' => $slider->mobile_object_position,
+                    'mobile_image_zoom' => $slider->mobile_image_zoom ? (float) $slider->mobile_image_zoom : null,
+                    'mobile_image_url' => $mobileImageUrl,
+                    'mobile_height' => $slider->mobile_height,
+                    'mobile_padding_top' => $slider->mobile_padding_top ?? 0,
+                    'mobile_padding_right' => $slider->mobile_padding_right ?? 0,
+                    'mobile_padding_bottom' => $slider->mobile_padding_bottom ?? 0,
+                    'mobile_padding_left' => $slider->mobile_padding_left ?? 0,
+                    'mobile_margin_top' => $slider->mobile_margin_top ?? 0,
+                    'mobile_margin_right' => $slider->mobile_margin_right ?? 0,
+                    'mobile_margin_bottom' => $slider->mobile_margin_bottom ?? 0,
+                    'mobile_margin_left' => $slider->mobile_margin_left ?? 0,
+                    'mobile_full_width' => $slider->mobile_full_width ?? false,
                     'images' => $allImages, // All images including main and additional
                     'link' => $slider->link,
                     'button_text' => $slider->button_text,
                     'button_text_color' => $slider->button_text_color,
                     'button_background_color' => $slider->button_background_color,
+                    'banner_text' => $slider->banner_text,
                     'background_color' => $slider->background_color,
                     'gradient_color_1' => $slider->gradient_color_1,
                     'gradient_color_2' => $slider->gradient_color_2,
