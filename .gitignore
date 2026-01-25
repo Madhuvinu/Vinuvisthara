@@ -70,6 +70,10 @@ coverage/
 # Keep important documentation like RAZORPAY_SETUP.md
 !RAZORPAY_SETUP.md
 
+# Allow Nixpacks build files
+!.nixpacks/
+!.nixpacks/build.sh
+
 # Uploads and media (keep structure but ignore content)
 uploads/
 public/uploads/
