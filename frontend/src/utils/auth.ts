@@ -57,6 +57,25 @@ export function isAuthenticated(): boolean {
 }
 
 /**
+ * Check if user is admin
+ */
+export function isAdmin(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  try {
+    const authData = localStorage.getItem('auth');
+    if (authData) {
+      const auth = JSON.parse(authData);
+      const user = auth.user || auth.customer;
+      return user?.role === 'admin';
+    }
+    return false;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
  * Get current user info if authenticated
  */
 export function getCurrentUser(): any | null {
@@ -94,6 +113,31 @@ export function saveAuth(token: string, customer: any): void {
   localStorage.setItem('auth', JSON.stringify({
     user: customer,
     customer: customer,
+    token: token,
+    expiresAt: expiresAt,
+  }));
+  
+  // Set expiration timestamp
+  localStorage.setItem('auth_expires', expiresAt.toString());
+  
+  // Dispatch custom event to notify components of auth change
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('auth-changed'));
+  }
+}
+
+/**
+ * Save admin authentication data with 30-minute expiration
+ */
+export function saveAdminAuth(token: string, user: any): void {
+  if (typeof window === 'undefined') return;
+  
+  const expiresAt = Date.now() + SESSION_DURATION;
+  
+  // Store auth data with admin role
+  localStorage.setItem('auth', JSON.stringify({
+    user: { ...user, role: 'admin' },
+    customer: null, // Admin is not a customer
     token: token,
     expiresAt: expiresAt,
   }));

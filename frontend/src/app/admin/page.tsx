@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Settings, Image, Package, ShoppingCart, Users, FileText, Tags, Gift } from 'lucide-react';
-import { isAuthenticated } from '@/utils/auth';
+import { isAuthenticated, isAdmin, saveAdminAuth } from '@/utils/auth';
+import { api } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 const ADMIN_SECTIONS = [
   { name: 'Dashboard', url: '/admin', icon: Settings },
@@ -20,27 +22,125 @@ const ADMIN_SECTIONS = [
 export default function AdminPanel() {
   const router = useRouter();
   const [isAuth, setIsAuth] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setIsAuth(isAuthenticated());
+    const checkAuth = () => {
+      const authenticated = isAuthenticated();
+      const admin = isAdmin();
+      setIsAuth(authenticated);
+      setIsAdminUser(admin);
+      if (!authenticated || !admin) {
+        setShowLogin(true);
+      }
+    };
+    
+    checkAuth();
+    
+    // Listen for auth changes
+    const handleAuthChange = () => {
+      checkAuth();
+    };
+    
+    window.addEventListener('auth-changed', handleAuthChange);
+    return () => window.removeEventListener('auth-changed', handleAuthChange);
   }, []);
 
-  if (!isAuth) {
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await api.adminLogin(loginData.email, loginData.password);
+      
+      if (response.user && response.token) {
+        saveAdminAuth(response.token, response.user);
+        toast.success('Admin login successful!');
+        
+        // Wait for localStorage to be set
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Dispatch auth-changed event
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('auth-changed'));
+        }
+        
+        setIsAuth(true);
+        setIsAdminUser(true);
+        setShowLogin(false);
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isAuth || !isAdminUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-amber-50">
-        <div className="text-center">
-          <h1 className="text-2xl font-playfair font-bold text-gray-900 mb-4">
-            Access Denied
-          </h1>
-          <p className="text-gray-600 font-poppins mb-6">
-            Please login to access the admin panel
-          </p>
-          <Link
-            href="/login"
-            className="inline-block px-6 py-3 bg-purple-600 text-white font-poppins font-semibold rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            Go to Login
-          </Link>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-amber-50 py-12 px-4">
+        <div className="max-w-md w-full">
+          <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
+            <h1 className="text-3xl font-playfair font-bold text-gray-900 mb-2 text-center">
+              Admin Login
+            </h1>
+            <p className="text-gray-600 font-poppins mb-6 text-center">
+              Please login with admin credentials
+            </p>
+            
+            <form onSubmit={handleAdminLogin} className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-sm font-poppins font-medium text-gray-700 mb-2">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={loginData.email}
+                  onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-poppins"
+                  placeholder="admin@vinuvisthara.com"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="password" className="block text-sm font-poppins font-medium text-gray-700 mb-2">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={loginData.password}
+                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-poppins"
+                  placeholder="Enter password"
+                />
+              </div>
+              
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full px-6 py-3 bg-purple-600 text-white font-poppins font-semibold rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Logging in...' : 'Login as Admin'}
+              </button>
+            </form>
+            
+            <div className="mt-6 text-center">
+              <Link
+                href="/"
+                className="text-sm text-purple-600 hover:text-purple-700 font-poppins"
+              >
+                Back to Store
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );
