@@ -38,7 +38,12 @@ class BlogResource extends Resource
                     ->image(),
                 Forms\Components\Select::make('category_id')
                     ->relationship('category', 'name'),
-                Forms\Components\TextInput::make('status')
+                Forms\Components\Select::make('status')
+                    ->options([
+                        'draft' => 'Draft',
+                        'published' => 'Published',
+                    ])
+                    ->default('draft')
                     ->required(),
                 Forms\Components\Toggle::make('is_featured')
                     ->required(),

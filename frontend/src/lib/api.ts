@@ -181,6 +181,43 @@ class ApiClient {
     return response.data;
   }
 
+  // Admin authentication endpoints
+  async adminLogin(email: string, password: string) {
+    try {
+      const fullURL = `${this.client.defaults.baseURL}/admin/auth/login`;
+      
+      logger.info('API admin login request', { 
+        email, 
+        baseURL: this.client.defaults.baseURL,
+        url: '/admin/auth/login',
+        fullURL,
+      });
+      
+      const response = await this.client.post('/admin/auth/login', { email, password });
+      
+      logger.info('API admin login response', { status: response.status });
+      return response.data;
+    } catch (error: any) {
+      logger.error('API admin login error', error, {
+        message: error.message,
+        code: error.code,
+        response: error.response?.status,
+        baseURL: this.client.defaults.baseURL,
+      });
+      throw error;
+    }
+  }
+
+  async adminLogout() {
+    const response = await this.client.post('/admin/auth/logout');
+    return response.data;
+  }
+
+  async getCurrentAdmin() {
+    const response = await this.client.get('/admin/auth/me');
+    return response.data;
+  }
+
   async requestPasswordReset(email: string) {
     // Note: Password reset endpoint needs to be implemented in Laravel
     const response = await this.client.post('/auth/password/reset-request', { email });

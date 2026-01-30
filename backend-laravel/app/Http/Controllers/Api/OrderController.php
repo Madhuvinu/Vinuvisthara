@@ -83,8 +83,11 @@ class OrderController extends Controller
                 'total' => $total,
                 'coupon_code' => $cart->coupon_code,
                 'shipping_address' => $request->shippingAddress,
-                'notes' => $request->notes,
+                'notes' => $request->notes ?? null,
             ]);
+            
+            // Reload order to ensure it's fresh from database
+            $order->refresh();
 
             // Create order items and update stock
             foreach ($cart->items as $item) {
@@ -111,17 +114,20 @@ class OrderController extends Controller
                 $cart->items()->delete();
                 $cart->delete();
                 
-                // Update order status for COD
+                // Update order status for COD - use 'processing' (valid enum: pending, processing, shipped, delivered, cancelled, refunded)
                 $order->update([
                     'payment_status' => 'pending',
-                    'status' => 'confirmed',
+                    'status' => 'processing',
                 ]);
                 
                 // Send order confirmation email for COD
                 try {
+                    // Reload order with relationships for email
+                    $order->load('customer', 'items');
                     \Mail::to($customer->email)->send(new \App\Mail\OrderConfirmationMail($order));
                 } catch (\Exception $e) {
                     \Log::error('Failed to send order confirmation email: ' . $e->getMessage());
+                    // Don't fail the order creation if email fails
                 }
             }
 
@@ -139,7 +145,13 @@ class OrderController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Failed to create order'], 500);
+            \Log::error('Order creation failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'customer_id' => $customer->id ?? null,
+            ]);
+            return response()->json([
+                'error' => 'Failed to create order',
+            ], 500);
         }
     }
 

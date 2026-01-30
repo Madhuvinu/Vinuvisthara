@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\ApiTokenController;
 use App\Http\Controllers\Api\SliderController;
 use App\Http\Controllers\Api\ProductReviewController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\AdminAuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,9 +20,20 @@ use App\Http\Controllers\Api\PaymentController;
 |--------------------------------------------------------------------------
 */
 
+// Health check (use for load balancers/uptime monitors)
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'timestamp' => now()->toIso8601String(),
+    ]);
+});
+
 // Public routes
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
+
+// Admin authentication routes (public)
+Route::post('/admin/auth/login', [AdminAuthController::class, 'login']);
 
 // Slider Images (public)
 Route::get('/slider-images', [SliderController::class, 'index']);
@@ -80,4 +92,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tokens/create', [ApiTokenController::class, 'create']);
     Route::get('/tokens', [ApiTokenController::class, 'index']);
     Route::delete('/tokens/{id}', [ApiTokenController::class, 'revoke']);
+});
+
+// Admin routes (require admin authentication via Sanctum)
+Route::middleware('auth:sanctum')->prefix('admin/auth')->group(function () {
+    Route::post('/logout', [AdminAuthController::class, 'logout']);
+    Route::get('/me', [AdminAuthController::class, 'me']);
 });

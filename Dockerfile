@@ -1,45 +1,58 @@
-# Use PHP 8.2 official image
+# Production-Ready & Local-Ready Dockerfile for Sarii Project
+# Supports both local development and production deployment
+
 FROM php:8.2-fpm
+
+ARG APP_ENV=local
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
     curl \
+    wget \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
     zip \
     unzip \
-    nodejs \
-    npm \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+    && docker-php-ext-install \
+        pdo_mysql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        opcache \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure PHP for production/local
+RUN if [ "$APP_ENV" = "production" ]; then \
+    cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini; \
+    else \
+    cp /usr/local/etc/php/php.ini-development /usr/local/etc/php/php.ini; \
+    fi
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Set working directory
-WORKDIR /var/www/html/backend-laravel
+WORKDIR /var/www/html
 
-# Copy Laravel application files
-COPY backend-laravel/ .
+# Copy application files
+COPY backend-laravel/ ./backend-laravel/
+COPY uploads/ ./uploads/ 2>/dev/null || true
 
 # Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
-
-# Install Node.js dependencies and build assets
-RUN npm install && npm run build
-
-# Copy environment file
-RUN if [ ! -f .env ]; then cp .env.example .env; fi
-
-# Generate application key
-RUN php artisan key:generate
-
-# Cache configuration for production
-RUN php artisan config:cache && php artisan route:cache && php artisan view:cache
+WORKDIR /var/www/html/backend-laravel
+RUN if [ "$APP_ENV" = "production" ]; then \
+    composer install --no-dev --optimize-autoloader; \
+    else \
+    composer install; \
+    fi
 
 # Set proper permissions
-RUN chown -R www-data:www-data /var/www/html/backend-laravel \
+RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 storage \
     && chmod -R 755 bootstrap/cache
 

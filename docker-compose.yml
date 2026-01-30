@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_ENV: ${APP_ENV:-local}
+    container_name: sarii_app
+    working_dir: /var/www/html
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - APP_DEBUG=${APP_DEBUG:-true}
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-sarii}
+      - DB_USERNAME=${DB_USERNAME:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - ./backend-laravel:/var/www/html/backend-laravel
+      - ./uploads:/var/www/html/uploads
+    ports:
+      - "9000:9000"
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - sarii-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: sarii_mysql
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-sarii}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_USER: ${DB_USERNAME:-root}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - sarii-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: sarii_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - sarii-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 20s
+      retries: 10
+
+  nginx:
+    image: nginx:alpine
+    container_name: sarii_nginx
+    ports:
+      - "${APP_PORT:-80}:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./backend-laravel:/var/www/html/backend-laravel
+      - ./frontend:/var/www/html/frontend
+    depends_on:
+      - app
+    networks:
+      - sarii-network
+
+  node:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        APP_ENV: ${APP_ENV:-local}
+    container_name: sarii_node
+    working_dir: /app
+    environment:
+      - NODE_ENV=${APP_ENV:-local}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - app
+    networks:
+      - sarii-network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  sarii-network:
+    driver: bridge

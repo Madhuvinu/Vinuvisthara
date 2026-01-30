@@ -24,9 +24,14 @@ return [
         'http://localhost:3001',
         'http://127.0.0.1:3000',
         'http://127.0.0.1:3001',
+        'https://vinuvisthara.com',
+        'https://www.vinuvisthara.com',
     ],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '#^https://.*\.vercel\.app$#',  // Vercel preview deployments
+        '#^https://.*\.railway\.app$#',  // Railway domains
+    ],
 
     'allowed_headers' => ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Origin'],
 
