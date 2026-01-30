@@ -26,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Ensure URL generation uses HTTPS in production (behind Caddy/reverse proxies).
         if ($this->app->environment('production')) {
+            URL::forceRootUrl(config('app.url'));
             URL::forceScheme('https');
         }
     }
