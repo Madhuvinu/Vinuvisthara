@@ -30,21 +30,6 @@ export default function RatWithSaree() {
       aria-hidden
     >
       <div className="rat-running-container relative w-full h-full overflow-visible">
-        {/* Rat Image - bigger with walking animation */}
-        <div className="rat-wrapper absolute bottom-0 rat-run-slow mt-2 sm:mt-3">
-          <img
-            src="/ratu-removebg-preview.png"
-            alt=""
-            className="rat-image rat-walking"
-            style={{
-              width: '55px',
-              height: 'auto',
-              objectFit: 'contain',
-              display: 'block',
-            }}
-          />
-        </div>
-
         {/* Custom Flow Banner attached to the rat - only show if banner text exists */}
         {bannerText && (
           <div className="rat-banner absolute bottom-8 rat-run-slow banner-float" style={{ marginLeft: '50px', zIndex: 2 }}>
