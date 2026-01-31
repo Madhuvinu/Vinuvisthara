@@ -1,7 +1,7 @@
 # Production-Ready & Local-Ready Dockerfile for Sarii Project
 # Supports both local development and production deployment
 
-FROM php:8.2-fpm
+FROM php:8.3-fpm
 
 ARG APP_ENV=local
 
