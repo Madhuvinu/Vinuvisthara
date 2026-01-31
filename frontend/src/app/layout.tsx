@@ -11,6 +11,13 @@ import Footer from '@/components/Footer';
 function ServiceWorkerRegistration() {
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => {
+      if (process.env.NODE_ENV === 'development') {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          registrations.forEach((registration) => registration.unregister());
+        });
+        return;
+      }
+
       navigator.serviceWorker.register('/sw.js')
         .then((registration) => {
           if (process.env.NODE_ENV === 'development') {

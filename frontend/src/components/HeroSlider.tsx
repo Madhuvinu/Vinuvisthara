@@ -21,9 +21,13 @@ interface SliderItem {
   object_fit?: string;
   object_position?: string;
   image_zoom?: number;
+  image_scale_x?: number;
+  image_scale_y?: number;
   mobile_object_fit?: string | null;
   mobile_object_position?: string | null;
   mobile_image_zoom?: number | null;
+  mobile_image_scale_x?: number | null;
+  mobile_image_scale_y?: number | null;
   mobile_image_url?: string | null;
   mobile_height?: number | null;
   mobile_padding_top?: number;
@@ -71,7 +75,6 @@ export default function HeroSlider() {
           min-height: 100% !important;
           max-height: 100% !important;
           width: 100% !important;
-          object-fit: cover !important;
         }
         .hero-slider-section {
           min-height: 200px !important;
@@ -179,6 +182,24 @@ export default function HeroSlider() {
     : Math.min(2, Math.max(0.5, Number(active?.image_zoom) || 1));
   
   const imageZoom = baseZoom;
+
+  // Desktop-only horizontal stretch (scaleX). Keep mobile unchanged.
+  const imageScaleX = isMobile
+    ? 1
+    : Math.min(2, Math.max(0.5, Number(active?.image_scale_x) || 1));
+
+  const imageScaleY = isMobile
+    ? 1
+    : Math.min(2, Math.max(0.5, Number(active?.image_scale_y) || 1));
+
+  // Mobile-only stretch (independent from desktop)
+  const mobileImageScaleX = isMobile
+    ? Math.min(2, Math.max(0.5, Number(active?.mobile_image_scale_x) || 1))
+    : 1;
+
+  const mobileImageScaleY = isMobile
+    ? Math.min(2, Math.max(0.5, Number(active?.mobile_image_scale_y) || 1))
+    : 1;
   
   // Mobile layout settings
   const mobileHeight = isMobile && active?.mobile_height ? `${active.mobile_height}px` : null;
@@ -256,11 +277,12 @@ export default function HeroSlider() {
                   alt=""
                   className="absolute inset-0 w-full h-full"
                   style={{
-                    objectFit: activeIndex === 0 ? 'cover' : (objectFit as React.CSSProperties['objectFit']),
-                    objectPosition: activeIndex === 0 ? 'center center' : objectPosition,
-                    transform: activeIndex === 0 
-                      ? `scale(${Math.max(imageZoom || 1, 1.1)})` 
-                      : `scale(${imageZoom || 1})`,
+                    // Always respect admin settings (no hard-coded first-slide overrides)
+                    objectFit: objectFit as React.CSSProperties['objectFit'],
+                    objectPosition: objectPosition,
+                    transform: isMobile
+                      ? `scaleX(${mobileImageScaleX || 1}) scaleY(${mobileImageScaleY || 1}) scale(${imageZoom || 1})`
+                      : `scaleX(${imageScaleX || 1}) scaleY(${imageScaleY || 1}) scale(${imageZoom || 1})`,
                     transformOrigin: 'center center',
                     width: '100%',
                     height: '100%',
@@ -358,11 +380,12 @@ export default function HeroSlider() {
                   className="absolute inset-0 w-full h-full slider-hero-image slider-hero-image-mobile transition-opacity duration-500 slider-image-zoom"
                   data-original-position={objectPosition}
                   style={{
-                    objectFit: activeIndex === 0 ? 'cover' : (objectFit as React.CSSProperties['objectFit']),
-                    objectPosition: activeIndex === 0 ? 'center center' : objectPosition,
-                    transform: activeIndex === 0 
-                      ? `scale(${Math.max(imageZoom || 1, 1.1)})` 
-                      : `scale(${imageZoom || 1})`,
+                    // Always respect admin settings (no hard-coded first-slide overrides)
+                    objectFit: objectFit as React.CSSProperties['objectFit'],
+                    objectPosition: objectPosition,
+                    transform: isMobile
+                      ? `scaleX(${mobileImageScaleX || 1}) scaleY(${mobileImageScaleY || 1}) scale(${imageZoom || 1})`
+                      : `scaleX(${imageScaleX || 1}) scaleY(${imageScaleY || 1}) scale(${imageZoom || 1})`,
                     transformOrigin: 'center center',
                     width: '100%',
                     height: '100%',

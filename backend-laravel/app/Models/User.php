@@ -47,7 +47,17 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        // Limit admin panel access to a single email.
-        return $this->email === 'madhuvinutha912@gmail.com';
+        // In local/dev, allow access to ease setup.
+        if (app()->environment('local')) {
+            return true;
+        }
+
+        // In production, restrict access to configured admin email(s).
+        $allowedEmails = array_filter([
+            env('ADMIN_EMAIL'), // preferred (set in backend-laravel/.env)
+            'madhuvinutha912@gmail.com', // fallback
+        ]);
+
+        return in_array($this->email, $allowedEmails, true);
     }
 }
