@@ -41,7 +41,6 @@ WORKDIR /var/www/html
 
 # Copy application files
 COPY backend-laravel/ ./backend-laravel/
-COPY uploads/ ./uploads/ 2>/dev/null || true
 
 # Install PHP dependencies
 WORKDIR /var/www/html/backend-laravel
