@@ -8,13 +8,15 @@ ARG APP_ENV=local
 
 # Copy package files
 COPY package*.json ./
-COPY .env.${APP_ENV} .env.local || true
 
 # Install dependencies
 RUN npm ci
 
 # Copy source code
 COPY . .
+
+# Create .env.local from environment-specific file if present
+RUN if [ -f ".env.${APP_ENV}" ]; then cp ".env.${APP_ENV}" .env.local; else touch .env.local; fi
 
 # Build application
 RUN npm run build
@@ -31,7 +33,7 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/public ./public
-COPY .env.${APP_ENV} .env.local || true
+COPY --from=builder /app/.env.local ./.env.local
 
 # Expose port
 EXPOSE 3000
