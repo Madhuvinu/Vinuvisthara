@@ -185,6 +185,10 @@ export default function CheckoutPage() {
 
   const handleRazorpayPayment = async (orderData: any) => {
     try {
+      if (!(window as any).Razorpay) {
+        throw new Error('Razorpay SDK not loaded. Please refresh and try again.');
+      }
+
       // Create Razorpay order
       const paymentOrder = await api.createPaymentOrder(orderData.id);
 
@@ -192,7 +196,7 @@ export default function CheckoutPage() {
         key: paymentOrder.key,
         amount: paymentOrder.amount,
         currency: paymentOrder.currency,
-        name: 'Saree Store',
+        name: 'Vinu Visthara',
         description: `Order ${orderData.orderNumber}`,
         order_id: paymentOrder.order_id,
         handler: async function (response: any) {
@@ -217,7 +221,7 @@ export default function CheckoutPage() {
           }
         },
         prefill: {
-          name: `${shippingAddress.email}`,
+          name: shippingAddress.email || 'Customer',
           email: shippingAddress.email,
           contact: shippingAddress.phone,
         },
@@ -513,20 +517,41 @@ export default function CheckoutPage() {
               <h3 className="text-xl font-playfair font-bold text-gray-900 mb-4">
                 Payment Method
               </h3>
-              <div className="bg-gray-50 rounded-lg p-4 border-2 border-purple-200">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    id="cod"
-                    name="payment"
-                    value="cod"
-                    defaultChecked
-                    className="w-5 h-5 text-purple-600"
-                  />
-                  <label htmlFor="cod" className="flex-1 cursor-pointer">
-                    <span className="font-poppins font-semibold text-gray-900 block">Cash on Delivery (COD)</span>
-                    <span className="font-poppins text-sm text-gray-600">Pay when you receive your order</span>
-                  </label>
+              <div className="space-y-3">
+                <div className="bg-gray-50 rounded-lg p-4 border-2 border-purple-200">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      id="cod"
+                      name="payment"
+                      value="cod"
+                      checked={paymentMethod === 'cod'}
+                      onChange={() => setPaymentMethod('cod')}
+                      className="w-5 h-5 text-purple-600"
+                    />
+                    <label htmlFor="cod" className="flex-1 cursor-pointer">
+                      <span className="font-poppins font-semibold text-gray-900 block">Cash on Delivery (COD)</span>
+                      <span className="font-poppins text-sm text-gray-600">Pay when you receive your order</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4 border-2 border-purple-200">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      id="razorpay"
+                      name="payment"
+                      value="razorpay"
+                      checked={paymentMethod === 'razorpay'}
+                      onChange={() => setPaymentMethod('razorpay')}
+                      className="w-5 h-5 text-purple-600"
+                    />
+                    <label htmlFor="razorpay" className="flex-1 cursor-pointer">
+                      <span className="font-poppins font-semibold text-gray-900 block">Online Payment</span>
+                      <span className="font-poppins text-sm text-gray-600">UPI / Cards / Netbanking</span>
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>

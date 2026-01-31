@@ -4,6 +4,8 @@
     $objectFit = $objectFit ?? 'cover';
     $objectPosition = $objectPosition ?? 'center center';
     $zoom = (float) ($zoom ?? 1);
+    $scaleX = (float) ($scaleX ?? 1);
+    $scaleY = (float) ($scaleY ?? 1);
     $mobileHeight = $mobileHeight ?? null;
     // Mobile preview dimensions (matches mobile viewport)
     $previewHeight = $mobileHeight ? (int)$mobileHeight : 240; // Default mobile height
@@ -27,7 +29,7 @@
             <div
                 class="absolute inset-0"
                 style="
-                    transform: scale({{ $zoom }});
+                    transform: scaleX({{ $scaleX }}) scaleY({{ $scaleY }}) scale({{ $zoom }});
                     transform-origin: center center;
                     width: 100%;
                     height: 100%;
@@ -66,6 +68,11 @@
             <div><span class="font-medium">Height:</span> Auto (240px default)</div>
         @endif
         
-        <div><span class="font-medium">Fit:</span> {{ $objectFit }} | <span class="font-medium">Position:</span> {{ $objectPosition }} | <span class="font-medium">Zoom:</span> {{ $zoom }}×</div>
+        <div>
+            <span class="font-medium">Fit:</span> {{ $objectFit }}
+            | <span class="font-medium">Position:</span> {{ $objectPosition }}
+            | <span class="font-medium">Zoom:</span> {{ $zoom }}×
+            | <span class="font-medium">Stretch:</span> {{ $scaleX }}× × {{ $scaleY }}×
+        </div>
     </div>
 </div>

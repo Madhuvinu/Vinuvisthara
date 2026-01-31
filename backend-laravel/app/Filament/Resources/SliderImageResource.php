@@ -155,6 +155,26 @@ class SliderImageResource extends Resource
                             ->live()
                             ->suffix('×')
                             ->helperText('1 = normal. <1 = zoom out, >1 = zoom in.'),
+                        Forms\Components\TextInput::make('image_scale_x')
+                            ->label('Horizontal Stretch (Desktop)')
+                            ->numeric()
+                            ->minValue(0.5)
+                            ->maxValue(2)
+                            ->step(0.05)
+                            ->default(1)
+                            ->live()
+                            ->suffix('×')
+                            ->helperText('Stretches the image left/right on desktop. 1 = normal. >1 = wider. This can distort the image.'),
+                        Forms\Components\TextInput::make('image_scale_y')
+                            ->label('Vertical Stretch (Desktop)')
+                            ->numeric()
+                            ->minValue(0.5)
+                            ->maxValue(2)
+                            ->step(0.05)
+                            ->default(1)
+                            ->live()
+                            ->suffix('×')
+                            ->helperText('Stretches the image up/down on desktop. 1 = normal. >1 = taller. This can distort the image.'),
                         Forms\Components\View::make('filament.forms.slider-fit-preview')
                             ->viewData(fn ($get, $livewire) => [
                                 'previewUrl' => method_exists($livewire, 'getSliderPreviewImageUrl')
@@ -163,6 +183,8 @@ class SliderImageResource extends Resource
                                 'objectFit' => $get('object_fit') ?? 'cover',
                                 'objectPosition' => $get('object_position') ?? 'center',
                                 'zoom' => (float) ($get('image_zoom') ?? 1),
+                                'scaleX' => (float) ($get('image_scale_x') ?? 1),
+                                'scaleY' => (float) ($get('image_scale_y') ?? 1),
                             ])
                             ->columnSpanFull(),
                     ])
@@ -178,17 +200,26 @@ class SliderImageResource extends Resource
                             ->imageEditor()
                             ->imageEditorAspectRatios([
                                 null => 'Free (no crop)',
+                                '3:2' => '3:2 (Recommended for mobile)',
                                 '16:9' => '16:9',
                                 '21:9' => '21:9',
                             ])
                             ->imageEditorEmptyFillColor('#ffffff')
+                            ->rules(function ($livewire) {
+                                // Enforce separate mobile image on create, and also on edit if missing.
+                                if (!isset($livewire->record) || !$livewire->record || !$livewire->record->exists) {
+                                    return ['required'];
+                                }
+                                $mobileImageUrl = $livewire->record->getRawOriginal('mobile_image_url') ?? null;
+                                return empty($mobileImageUrl) ? ['required'] : ['sometimes'];
+                            })
                             ->live()
                             ->disk('public')
                             ->directory('slider-images/mobile')
                             ->visibility('public')
                             ->maxSize(5120) // 5MB
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                            ->helperText('Upload a separate image optimized for mobile view. If not provided, desktop image will be used.')
+                            ->helperText('Required: Upload a separate image for mobile. Recommended size: 1080×720 (3:2). Keep key content centered.')
                             ->columnSpanFull(),
                         
                         Forms\Components\TextInput::make('mobile_height')
@@ -243,6 +274,28 @@ class SliderImageResource extends Resource
                             ->placeholder('Use desktop zoom')
                             ->suffix('×')
                             ->helperText('Mobile-specific zoom. Usually keep at 1.0 for mobile to show complete image.'),
+
+                        Forms\Components\TextInput::make('mobile_image_scale_x')
+                            ->label('Mobile Horizontal Stretch')
+                            ->numeric()
+                            ->minValue(0.5)
+                            ->maxValue(2)
+                            ->step(0.05)
+                            ->default(1)
+                            ->live()
+                            ->suffix('×')
+                            ->helperText('Stretches the image left/right on mobile. 1 = normal. >1 = wider. This can distort the image.'),
+
+                        Forms\Components\TextInput::make('mobile_image_scale_y')
+                            ->label('Mobile Vertical Stretch')
+                            ->numeric()
+                            ->minValue(0.5)
+                            ->maxValue(2)
+                            ->step(0.05)
+                            ->default(1)
+                            ->live()
+                            ->suffix('×')
+                            ->helperText('Stretches the image up/down on mobile. 1 = normal. >1 = taller. This can distort the image.'),
                         
                         Forms\Components\View::make('filament.forms.slider-mobile-preview')
                             ->viewData(fn ($get, $livewire) => [
@@ -255,6 +308,8 @@ class SliderImageResource extends Resource
                                 'objectFit' => $get('mobile_object_fit') ?? ($get('object_fit') ?? 'cover'),
                                 'objectPosition' => $get('mobile_object_position') ?? ($get('object_position') ?? 'center center'),
                                 'zoom' => (float) ($get('mobile_image_zoom') ?? $get('image_zoom') ?? 1),
+                                'scaleX' => (float) ($get('mobile_image_scale_x') ?? 1),
+                                'scaleY' => (float) ($get('mobile_image_scale_y') ?? 1),
                                 'mobileHeight' => $get('mobile_height'),
                             ])
                             ->columnSpanFull(),

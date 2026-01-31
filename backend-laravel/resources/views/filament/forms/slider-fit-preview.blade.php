@@ -3,6 +3,8 @@
     $objectFit = $objectFit ?? 'contain';
     $objectPosition = $objectPosition ?? 'center';
     $zoom = (float) ($zoom ?? 1);
+    $scaleX = (float) ($scaleX ?? 1);
+    $scaleY = (float) ($scaleY ?? 1);
     // Match frontend hero dimensions: 420-480px height, full width
     $previewHeight = 450; // Match md breakpoint
 @endphp
@@ -20,7 +22,7 @@
             <div
                 class="absolute inset-0"
                 style="
-                    transform: scale({{ $zoom }});
+                    transform: scaleX({{ $scaleX }}) scaleY({{ $scaleY }}) scale({{ $zoom }});
                     transform-origin: center center;
                     width: 100%;
                     height: 100%;
