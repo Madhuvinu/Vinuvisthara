@@ -65,14 +65,14 @@ services:
     image: nginx:alpine
     container_name: sarii_nginx
     ports:
-      - "${APP_PORT:-80}:80"
-      - "443:443"
+      - "8080:80"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - ./backend-laravel:/var/www/html/backend-laravel
       - ./frontend:/var/www/html/frontend
     depends_on:
-      - app
+      app:
+        condition: service_started
     networks:
       - sarii-network
 
