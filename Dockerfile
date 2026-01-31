@@ -48,7 +48,7 @@ COPY backend-laravel/ ./backend-laravel/
 
 # Install PHP dependencies
 WORKDIR /var/www/html/backend-laravel
-RUN mkdir -p bootstrap/cache storage
+RUN mkdir -p bootstrap/cache storage/framework/cache/data storage/framework/views storage/framework/sessions
 RUN if [ "$APP_ENV" = "production" ]; then \
     composer install --no-dev --optimize-autoloader; \
     else \
