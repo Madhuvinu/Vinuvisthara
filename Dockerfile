@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     libicu-dev \
+    libzip-dev \
     zip \
     unzip \
     && docker-php-ext-install \
@@ -25,7 +26,7 @@ RUN apt-get update && apt-get install -y \
         gd \
         opcache \
         intl \
-    && docker-php-ext-enable zip \
+        zip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
