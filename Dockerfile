@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
+    libicu-dev \
     zip \
     unzip \
     && docker-php-ext-install \
@@ -23,6 +24,8 @@ RUN apt-get update && apt-get install -y \
         bcmath \
         gd \
         opcache \
+        intl \
+    && docker-php-ext-enable zip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
