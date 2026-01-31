@@ -24,6 +24,7 @@ return [
         'http://localhost:3001',
         'http://127.0.0.1:3000',
         'http://127.0.0.1:3001',
+        'https://app.vinuvisthara.com',
         'https://vinuvisthara.com',
         'https://www.vinuvisthara.com',
     ],
@@ -33,7 +34,16 @@ return [
         '#^https://.*\.railway\.app$#',  // Railway domains
     ],
 
-    'allowed_headers' => ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Origin'],
+    // Include common auth / CSRF headers used by browsers and Axios.
+    'allowed_headers' => [
+        'Content-Type',
+        'Authorization',
+        'Accept',
+        'X-Requested-With',
+        'Origin',
+        'X-CSRF-TOKEN',
+        'X-XSRF-TOKEN',
+    ],
 
     'exposed_headers' => [],
 
