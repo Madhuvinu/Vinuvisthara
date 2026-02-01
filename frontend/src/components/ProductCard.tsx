@@ -100,7 +100,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               className="object-cover"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
               onError={() => setImageError(true)}
-              unoptimized={imageUrl === '/vinlogo.png'}
+              unoptimized
             />
           </motion.div>
 

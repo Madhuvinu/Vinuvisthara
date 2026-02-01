@@ -120,6 +120,7 @@ export default function TrendingSarees() {
                     className="object-cover transition-transform duration-300 group-hover:scale-105"
                     sizes="(max-width: 640px) 100vw, 33vw"
                     onError={() => setImageErrors((prev) => new Set(prev).add(p.id))}
+                    unoptimized
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center bg-gray-200 text-gray-400 text-sm">
