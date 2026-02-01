@@ -1,6 +1,6 @@
 # Frontend Next.js Dockerfile - Production & Local Ready
 
-FROM node:18-alpine as builder
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
