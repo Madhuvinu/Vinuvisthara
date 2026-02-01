@@ -1,0 +1,9 @@
+# Production override: frontend uses the built image so code changes reflect after rebuild.
+# Use: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Node: no ./frontend mount → runs the built app from the image (your rat image etc.).
+# Rebuild node after code changes: docker compose -f docker-compose.yml -f docker-compose.prod.yml build node && ... up -d
+
+services:
+  node:
+    volumes: []
