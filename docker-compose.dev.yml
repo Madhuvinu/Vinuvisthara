@@ -1,0 +1,7 @@
+# Local dev: mount frontend so you can edit and see changes (run npm run build in frontend first, or use next dev).
+# Use: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+services:
+  node:
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules

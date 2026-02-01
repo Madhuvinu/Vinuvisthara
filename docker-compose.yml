@@ -92,9 +92,7 @@ services:
       - NODE_ENV=${APP_ENV:-local}
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
       - NEXT_PUBLIC_MEDUSA_ADMIN_URL=${NEXT_PUBLIC_MEDUSA_ADMIN_URL:-http://localhost:9001/app}
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+    # No volumes: container uses built image (production). For local dev with live reload, use docker-compose.dev.yml.
     ports:
       - "3000:3000"
     depends_on:
