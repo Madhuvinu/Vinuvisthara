@@ -8,6 +8,7 @@ import { ShoppingCart, Plus, Minus, Star, Send } from 'lucide-react';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { logger } from '@/utils/logger';
+import { getAbsoluteImageUrl } from '@/utils/imageUrl';
 import { isAuthenticated, refreshAuth } from '@/utils/auth';
 
 interface Product {
@@ -366,10 +367,13 @@ export default function ProductDetailPage({ productId }: ProductDetailPageProps)
     );
   }
 
-  // Transform images array
-  const images = product.images?.map((img: any) => 
-    typeof img === 'string' ? img : img.url || img
-  ).filter((url: string) => url) || (product.thumbnail ? [product.thumbnail] : []);
+  // Transform images array: normalize to string URLs and make absolute (API domain) so next/image can load them
+  const rawImages = product.images?.map((img: any) =>
+    typeof img === 'string' ? img : (img?.image_url || img?.url || img)
+  ).filter(Boolean) || (product.thumbnail ? [product.thumbnail] : []);
+  const images = rawImages
+    .map((url: string) => getAbsoluteImageUrl(url))
+    .filter((url): url is string => url != null);
   
   // Price logic: Always show price as selling price, compare_at_price as MRP
   const price = product.price || 0;
@@ -434,6 +438,7 @@ export default function ProductDetailPage({ productId }: ProductDetailPageProps)
                     className="object-cover transition-transform duration-700 ease-in-out group-hover:scale-[2.5]"
                     priority
                     sizes="(max-width: 1024px) 100vw, 50vw"
+                    unoptimized
                   />
                 </div>
               ) : (
@@ -466,6 +471,7 @@ export default function ProductDetailPage({ productId }: ProductDetailPageProps)
                         fill
                         className="object-cover"
                         sizes="96px"
+                        unoptimized
                       />
                       {selectedImage === index && (
                         <div className="absolute inset-0 bg-purple-600/20 flex items-center justify-center">
