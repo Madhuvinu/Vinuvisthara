@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { getAbsoluteImageUrl } from '@/utils/imageUrl';
 
 interface Product {
   id: string;
@@ -29,7 +30,12 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const imageUrl = product.images?.[0] || product.thumbnail || '/placeholder.jpg';
+  const [imageError, setImageError] = useState(false);
+  const rawUrl = product.images?.[0] || product.thumbnail;
+  const PLACEHOLDER = '/vinlogo.png';
+  const imageUrl = imageError || !rawUrl
+    ? PLACEHOLDER
+    : (getAbsoluteImageUrl(typeof rawUrl === 'string' ? rawUrl : (rawUrl as { image_url?: string })?.image_url) || PLACEHOLDER);
   
   // Price logic: Always show price as selling price, compare_at_price as MRP
   // Convert to numbers to ensure proper comparison
@@ -93,6 +99,8 @@ export default function ProductCard({ product }: ProductCardProps) {
               fill
               className="object-cover"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              onError={() => setImageError(true)}
+              unoptimized={imageUrl === '/vinlogo.png'}
             />
           </motion.div>
 
