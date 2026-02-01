@@ -176,7 +176,7 @@ export default function Header() {
             href="/"
             className="text-xl sm:text-2xl font-playfair font-bold text-white hover:text-yellow-300 active:text-yellow-300 transition-colors touch-manipulation"
           >
-            VinuVishtra
+            VinuVisthara
           </Link>
 
           {/* Center navigation - hidden on mobile, shown on lg+ */}
