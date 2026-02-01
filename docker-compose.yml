@@ -1,5 +1,6 @@
-version: '3.8'
-
+# Compose reads .env from project root for ${VAR} substitution.
+# Local: use defaults (localhost). Production: create .env with APP_ENV=production,
+# APP_URL=https://api.vinuvisthara.com, NEXT_PUBLIC_API_URL=https://api.vinuvisthara.com, etc.
 services:
   app:
     build:
@@ -12,6 +13,7 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-local}
       - APP_DEBUG=${APP_DEBUG:-true}
+      - APP_URL=${APP_URL:-http://localhost}
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_DATABASE=${DB_DATABASE:-sarii}
@@ -82,11 +84,14 @@ services:
       dockerfile: Dockerfile
       args:
         APP_ENV: ${APP_ENV:-local}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_MEDUSA_ADMIN_URL: ${NEXT_PUBLIC_MEDUSA_ADMIN_URL}
     container_name: sarii_node
     working_dir: /app
     environment:
       - NODE_ENV=${APP_ENV:-local}
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      - NEXT_PUBLIC_MEDUSA_ADMIN_URL=${NEXT_PUBLIC_MEDUSA_ADMIN_URL:-http://localhost:9001/app}
     volumes:
       - ./frontend:/app
       - /app/node_modules

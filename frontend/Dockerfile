@@ -5,6 +5,8 @@ FROM node:18-alpine as builder
 WORKDIR /app
 
 ARG APP_ENV=local
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_MEDUSA_ADMIN_URL
 
 # Copy package files
 COPY package*.json ./
@@ -15,10 +17,12 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Create .env.local from environment-specific file if present
+# Create .env.local: use env-specific file, then override with build args (production URLs from server)
 RUN if [ -f ".env.${APP_ENV}" ]; then cp ".env.${APP_ENV}" .env.local; else touch .env.local; fi
+RUN if [ -n "$NEXT_PUBLIC_API_URL" ]; then echo "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" >> .env.local; fi
+RUN if [ -n "$NEXT_PUBLIC_MEDUSA_ADMIN_URL" ]; then echo "NEXT_PUBLIC_MEDUSA_ADMIN_URL=$NEXT_PUBLIC_MEDUSA_ADMIN_URL" >> .env.local; fi
 
-# Build application
+# Build application (bakes in NEXT_PUBLIC_* from .env.local)
 RUN npm run build
 
 # Production image
@@ -41,5 +45,5 @@ EXPOSE 3000
 # Set environment
 ENV NODE_ENV=${APP_ENV}
 
-# Start application
-CMD ["npm", "start"]
+# Listen on all interfaces so nginx (in another container) can proxy to this container.
+CMD ["npx", "next", "start", "-H", "0.0.0.0"]

@@ -19,15 +19,18 @@ return [
 
     'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
-    'allowed_origins' => [
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:3001',
-        'https://app.vinuvisthara.com',
-        'https://vinuvisthara.com',
-        'https://www.vinuvisthara.com',
-    ],
+    // Local: localhost + production domains. Production: only CORS_ALLOWED_ORIGINS (no localhost on server).
+    'allowed_origins' => env('APP_ENV') === 'production'
+        ? array_values(array_filter(array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS', 'https://app.vinuvisthara.com,https://vinuvisthara.com,https://www.vinuvisthara.com')))))
+        : [
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'http://127.0.0.1:3000',
+            'http://127.0.0.1:3001',
+            'https://app.vinuvisthara.com',
+            'https://vinuvisthara.com',
+            'https://www.vinuvisthara.com',
+        ],
 
     'allowed_origins_patterns' => [
         '#^https://.*\.vercel\.app$#',  // Vercel preview deployments
