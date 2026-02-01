@@ -9,6 +9,7 @@ import { Plus, Minus, Trash2, ShoppingBag } from 'lucide-react';
 import { api } from '@/lib/api';
 import { logger } from '@/utils/logger';
 import toast from 'react-hot-toast';
+import { getAbsoluteImageUrl } from '@/utils/imageUrl';
 import { isAuthenticated as checkAuth, refreshAuth } from '@/utils/auth';
 
 interface CartItem {
@@ -333,13 +334,15 @@ export default function CartPage() {
                 {cartItems.map((item: any, index: number) => {
                   // Laravel cart item structure
                   const productTitle = item.product?.name || item.product_name || 'Product';
-                  // Try multiple image sources
-                  const productThumbnail = item.product?.thumbnail || 
+                  // Try multiple image sources; make absolute so image loads from API domain
+                  const rawThumb = item.product?.thumbnail ||
                     item.product?.formatted_images?.[0]?.image_url ||
-                    item.product?.images?.[0]?.image_url || 
-                    (Array.isArray(item.product?.images) && item.product.images[0] ? 
-                      (typeof item.product.images[0] === 'string' ? item.product.images[0] : item.product.images[0].image_url) : null) ||
+                    item.product?.images?.[0]?.image_url ||
+                    (Array.isArray(item.product?.images) && item.product.images[0]
+                      ? (typeof item.product.images[0] === 'string' ? item.product.images[0] : item.product.images[0].image_url)
+                      : null) ||
                     item.product?.primary_image || '';
+                  const productThumbnail = rawThumb ? getAbsoluteImageUrl(rawThumb) : '';
                   const unitPrice = parseFloat(item.price) || 0;
                   const itemTotal = parseFloat(item.total) || (unitPrice * item.quantity);
                   
@@ -359,6 +362,7 @@ export default function CartPage() {
                           fill
                           className="object-cover"
                           sizes="96px"
+                          unoptimized
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
