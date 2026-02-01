@@ -39,6 +39,11 @@ RUN if [ "$APP_ENV" = "production" ]; then \
     cp /usr/local/etc/php/php.ini-development /usr/local/etc/php/php.ini; \
     fi
 
+# PHP-FPM: listen on all interfaces so nginx (in another container) can connect.
+# Default is 127.0.0.1:9000 which causes 502 Bad Gateway when nginx proxies to app:9000.
+RUN sed -i 's/listen = 127.0.0.1:9000/listen = 9000/' /usr/local/etc/php-fpm.d/www.conf \
+    || sed -i 's/listen = .*/listen = 9000/' /usr/local/etc/php-fpm.d/www.conf
+
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
