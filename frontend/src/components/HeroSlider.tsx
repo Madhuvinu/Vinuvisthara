@@ -137,7 +137,7 @@ export default function HeroSlider() {
           id: 'fallback-1',
           image_url: '/slider/slide1.png',
           title: 'Elevate Your Style',
-          description: 'with VinuVishtra',
+          description: 'with VinuVisthara',
           link: '/collections/all',
           button_text: 'Explore Collection',
           object_fit: 'cover',
@@ -461,7 +461,7 @@ export default function HeroSlider() {
               >
                 Elevate Your Style
                 <br />
-                <span className="text-[10px] sm:text-2xl md:text-3xl lg:text-4xl">with VinuVishtra</span>
+                <span className="text-[10px] sm:text-2xl md:text-3xl lg:text-4xl">with VinuVisthara</span>
               </h1>
             )}
             <Link
