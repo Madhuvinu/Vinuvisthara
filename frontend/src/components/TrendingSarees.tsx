@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Star } from 'lucide-react';
 import { api } from '@/lib/api';
+import { getAbsoluteImageUrl } from '@/utils/imageUrl';
 
 interface Product {
   id: string;
@@ -52,6 +53,7 @@ const StarRating = ({ rating = 5, totalReviews = 0 }: { rating?: number; totalRe
 export default function TrendingSarees() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchTrending = async () => {
@@ -92,7 +94,8 @@ export default function TrendingSarees() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
       {products.slice(0, 3).map((p) => {
-        const img = p.images?.[0] || p.thumbnail;
+        const rawImg = p.images?.[0] || p.thumbnail;
+        const img = rawImg ? getAbsoluteImageUrl(typeof rawImg === 'string' ? rawImg : (rawImg as { image_url?: string })?.image_url) : null;
         const displayPrice = p.has_discount && p.discounted_price != null && p.discounted_price < p.price
           ? p.discounted_price
           : p.price;
@@ -109,16 +112,17 @@ export default function TrendingSarees() {
             <div className="bg-white/95 rounded-2xl p-4 md:p-5 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-[#e8ddd0]">
               {/* Product Image */}
               <div className="relative aspect-[3/4] overflow-hidden rounded-xl mb-4 bg-gray-100">
-                {img ? (
+                {(img && !imageErrors.has(p.id)) ? (
                   <Image
                     src={img}
                     alt={p.name}
                     fill
                     className="object-cover transition-transform duration-300 group-hover:scale-105"
                     sizes="(max-width: 640px) 100vw, 33vw"
+                    onError={() => setImageErrors((prev) => new Set(prev).add(p.id))}
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center bg-gray-200 text-gray-400 text-sm">
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-200 text-gray-400 text-sm">
                     No image
                   </div>
                 )}
