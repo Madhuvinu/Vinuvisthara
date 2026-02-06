@@ -36,6 +36,7 @@ export default function FeaturedCollections() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const autoScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   
   useEffect(() => {
     const checkMobile = () => {
@@ -101,7 +102,14 @@ export default function FeaturedCollections() {
       try {
         setLoading(true);
         logger.info('Fetching categories for FeaturedCollections');
-        const response = await api.getCategories();
+        const response = (await api.getCategories()) as
+          | Category[]
+          | {
+              categories?: Category[];
+              section_background?: { gradient?: string; color?: string } | null;
+            }
+          | null
+          | undefined;
         
         // Handle both old format (array) and new format (object with categories and section_background)
         let categoriesData: Category[] = [];
@@ -110,13 +118,23 @@ export default function FeaturedCollections() {
         if (Array.isArray(response)) {
           // Old format - just array of categories
           categoriesData = response;
-        } else if (response && response.categories) {
+        } else if (
+          response &&
+          typeof response === 'object' &&
+          'categories' in response
+        ) {
           // New format - object with categories and section_background
-          categoriesData = response.categories || [];
-          if (response.section_background) {
+          const payload = response as {
+            categories?: Category[];
+            section_background?: { gradient?: string; color?: string } | null;
+          };
+
+          const rawCategories = Array.isArray(payload.categories) ? payload.categories : [];
+          categoriesData = rawCategories;
+          if (payload.section_background) {
             // Use gradient if available, otherwise use color
-            background = response.section_background.gradient || 
-                        response.section_background.color || 
+            background = payload.section_background.gradient || 
+                        payload.section_background.color || 
                         background;
           }
         } else {
@@ -321,7 +339,7 @@ export default function FeaturedCollections() {
                   className="group collection-card block relative w-full h-full rounded-xl overflow-hidden shadow-md"
                 >
                   {/* Category Image or Gradient Background */}
-                  {category.image ? (
+                  {category.image && !imageErrors.has(String(category.id)) ? (
                     <>
                       {/* Wrapper for base scale to allow hover zoom to work */}
                       <div 
@@ -329,27 +347,27 @@ export default function FeaturedCollections() {
                         style={{
                           transform: imageScale !== 1.0 ? `scale(${imageScale})` : 'none',
                           transformOrigin: `${objectPositionX} ${objectPositionY}`,
+                          position: 'relative',
                         }}
                       >
-                        <img
+                        <Image
                           src={category.image}
                           alt={category.name}
+                          fill
+                          sizes="(max-width: 768px) 70vw, 280px"
                           className="collection-card-image absolute inset-0 w-full h-full"
                           style={{
                             objectFit: imageFit as 'cover' | 'contain' | 'fill' | 'none',
                             objectPosition: finalObjectPosition,
                           }}
-                          onError={(e) => {
-                            // Fallback to gradient if image fails to load
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              const gradient = document.createElement('div');
-                              gradient.className = 'absolute inset-0 bg-gradient-to-br from-purple-400 to-pink-400';
-                              parent.insertBefore(gradient, target);
-                            }
+                          onError={() => {
+                            setImageErrors((prev) => {
+                              const next = new Set(prev);
+                              next.add(String(category.id));
+                              return next;
+                            });
                           }}
+                          unoptimized
                         />
                       </div>
                       {/* Dark Gradient Overlay for Text Readability */}

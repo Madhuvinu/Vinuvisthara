@@ -34,6 +34,9 @@ class Order extends Model
         'picked_at',
         'packed_at',
         'fulfillment_notes',
+        'shiprocket_order_id',
+        'shiprocket_shipment_id',
+        'shiprocket_awb',
     ];
 
     protected $casts = [

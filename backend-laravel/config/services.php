@@ -35,4 +35,13 @@ return [
         'secret' => env('RAZORPAY_SECRET'),
     ],
 
+    'shiprocket' => [
+        'email' => env('SHIPROCKET_EMAIL'),
+        'password' => env('SHIPROCKET_PASSWORD'),
+        'base_url' => env('SHIPROCKET_BASE_URL', 'https://apiv2.shiprocket.in'),
+        'default_weight_kg' => (float) (env('SHIPROCKET_DEFAULT_WEIGHT_KG', 0.5)),
+        'channel_id' => env('SHIPROCKET_CHANNEL_ID', ''),
+        'auto_create_on_confirmed' => filter_var(env('SHIPROCKET_AUTO_CREATE_ON_CONFIRMED', false), FILTER_VALIDATE_BOOLEAN),
+    ],
+
 ];

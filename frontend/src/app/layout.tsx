@@ -6,6 +6,7 @@ import { HeaderColorProvider } from '@/contexts/HeaderColorContext';
 import Header from '@/components/Header';
 import SidePanel from '@/components/SidePanel';
 import Footer from '@/components/Footer';
+import LoadingScreen from '@/components/LoadingScreen';
 
 // PWA Service Worker Registration
 function ServiceWorkerRegistration() {
@@ -65,6 +66,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="bg-white min-h-screen" style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <LoadingScreen />
         <ServiceWorkerRegistration />
         <HeaderColorProvider>
           <SidePanelProvider>

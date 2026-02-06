@@ -148,8 +148,9 @@ class FrontendLogger {
   }
 
   debug(message: string, context?: Record<string, any>): void {
-    // Only log debug messages in development
-    if (process.env.NODE_ENV === 'development') {
+    // Disable debug logging to reduce console noise
+    // Only log debug messages in development if explicitly needed
+    if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_LOGS === 'true') {
       this.addLog(this.createLogEntry('DEBUG', message, context));
     }
   }
