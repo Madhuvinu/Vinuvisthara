@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
 import { api } from '@/lib/api';
@@ -27,15 +28,20 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const searchTerm = (searchParams?.get('search') ?? '').trim();
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        logger.info('Fetching products', { timestamp: new Date().toISOString() });
+        logger.info('Fetching products', { timestamp: new Date().toISOString(), search: searchTerm || undefined });
         setLoading(true);
         setError(null);
 
-        const response = await api.getProducts({ limit: 100 });
+        const response = await api.getProducts({
+          limit: 100,
+          ...(searchTerm ? { search: searchTerm } : {}),
+        });
         logger.info('Products API response received', {
           timestamp: new Date().toISOString(),
           hasResponse: !!response,
@@ -87,7 +93,7 @@ export default function ProductsPage() {
     };
 
     fetchProducts();
-  }, []);
+  }, [searchTerm]);
 
   if (loading) {
     return (
@@ -130,16 +136,18 @@ export default function ProductsPage() {
           className="mb-12"
         >
           <h1 className="text-4xl md:text-5xl font-playfair font-bold text-gray-900 mb-4">
-            All Products
+            {searchTerm ? `Results for “${searchTerm}”` : 'All Products'}
           </h1>
           <p className="text-gray-600 font-poppins text-lg">
-            {products.length} {products.length === 1 ? 'product' : 'products'} available
+            {products.length} {products.length === 1 ? 'product' : 'products'} {searchTerm ? 'found' : 'available'}
           </p>
         </motion.div>
 
         {products.length === 0 ? (
           <div className="text-center py-20">
-            <p className="font-poppins text-gray-600 text-lg">No products found.</p>
+            <p className="font-poppins text-gray-600 text-lg">
+              {searchTerm ? `No products matched “${searchTerm}”.` : 'No products found.'}
+            </p>
           </div>
         ) : (
           <motion.div

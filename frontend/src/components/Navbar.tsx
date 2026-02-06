@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Menu, Search, ShoppingCart, Heart } from 'lucide-react';
@@ -13,6 +13,7 @@ interface NavbarProps {
 export default function Navbar({ onMenuClick }: NavbarProps) {
   const [user, setUser] = useState<any>(null);
   const [cartCount, setCartCount] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -51,6 +52,15 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
     localStorage.removeItem('auth');
     setUser(null);
     router.push('/');
+  };
+
+  const handleSearchSubmit = (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    const query = searchTerm.trim();
+    if (!query) {
+      return;
+    }
+    router.push(`/products?search=${encodeURIComponent(query)}`);
   };
 
   return (
@@ -120,14 +130,26 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             {/* Right Navigation - Search, Cart, Wishlist */}
             <div className="flex items-center space-x-3">
               {/* Search Bar - Exactly like Euphoria */}
-              <div className="hidden md:flex items-center bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 transition-colors cursor-pointer border border-white/20">
-                <Search className="w-4 h-4 text-white mr-2" />
+              <form
+                onSubmit={handleSearchSubmit}
+                className="hidden md:flex items-center bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 transition-colors border border-white/20"
+                role="search"
+              >
+                <button
+                  type="submit"
+                  className="text-white mr-2 flex items-center justify-center focus:outline-none"
+                  aria-label="Search"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
                 <input
                   type="text"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Search"
-                  className="bg-transparent border-none outline-none text-white placeholder-white/70 font-poppins text-sm w-24"
+                  className="bg-transparent border-none outline-none text-white placeholder-white/70 font-poppins text-sm w-32"
                 />
-              </div>
+              </form>
 
               {/* Cart Icon - With badge like Euphoria */}
               <Link 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search, ShoppingBag, User } from 'lucide-react';
@@ -76,6 +76,9 @@ export default function Header() {
   const { headerColor, sparkleSettings } = useHeaderColor();
   const [cartCount, setCartCount] = useState(0);
   const [user, setUser] = useState<any>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   // Always use gradient by default unless slider explicitly sets a header_color
   // CONTEXT_DEFAULT (#1f2937) means "use gradient" - only use solid color if slider set a custom color
@@ -159,8 +162,40 @@ export default function Header() {
     router.push('/');
   };
 
+  const openSearch = () => {
+    setIsSearchOpen(true);
+    setTimeout(() => searchInputRef.current?.focus(), 50);
+  };
+
+  const closeSearch = () => {
+    setIsSearchOpen(false);
+    setSearchValue('');
+  };
+
+  const handleSearchSubmit = (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    const query = searchValue.trim();
+    if (!query) {
+      return;
+    }
+    router.push(`/products?search=${encodeURIComponent(query)}`);
+    closeSearch();
+  };
+
+  useEffect(() => {
+    if (!isSearchOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeSearch();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isSearchOpen]);
+
   return (
-    <header className="relative z-50" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <>
+      <header className="relative z-50" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div
         className="relative transition-colors duration-500"
         style={headerStyle}
@@ -230,6 +265,7 @@ export default function Header() {
             <button
               className="text-white hover:text-yellow-300 active:text-yellow-300 transition-colors touch-manipulation p-1 -mr-1"
               aria-label="Search"
+              onClick={openSearch}
             >
               <Search className="w-5 h-5 sm:w-5 sm:h-5" />
             </button>
@@ -266,7 +302,49 @@ export default function Header() {
             </Link>
           </div>
         </div>
+
+        {isSearchOpen && (
+          <div className="px-4 sm:px-6 pb-4">
+            <form
+              onSubmit={handleSearchSubmit}
+              className="relative flex flex-col gap-3 rounded-2xl border border-white/30 bg-white/95 text-gray-900 shadow-2xl backdrop-blur"
+            >
+              <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+                <div className="hidden sm:flex items-center justify-center w-11 h-11 rounded-full bg-emerald-100 text-emerald-600">
+                  <Search className="w-5 h-5" />
+                </div>
+                <input
+                  ref={searchInputRef}
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
+                  placeholder="Search sarees by color, fabric, occasion..."
+                  className="flex-1 min-w-[160px] bg-transparent outline-none text-base placeholder-gray-400"
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
+                  >
+                    Search
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeSearch}
+                    className="px-3 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center justify-between px-4 pb-3 text-[11px] uppercase tracking-[0.35em] text-gray-500">
+                <span>Press Enter</span>
+                <span>Esc to close</span>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
-    </header>
+      </header>
+    </>
   );
 }
