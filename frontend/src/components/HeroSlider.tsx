@@ -6,6 +6,7 @@ import CategoryStrip from './CategoryStrip';
 import RatWithSaree from './RatWithSaree';
 import { api } from '@/lib/api';
 import { useHeaderColor } from '@/contexts/HeaderColorContext';
+import Image from 'next/image';
 
 interface SliderItem {
   id: number | string;
@@ -96,35 +97,25 @@ export default function HeroSlider() {
 
   // Update header color and sparkle settings when active slide changes
   useEffect(() => {
-    // Don't update if slider data hasn't loaded yet (prevents showing wrong color on refresh)
-    if (loading || !active) {
-      // Keep default gradient until slider loads - don't set any color
+    if (loading || sliders.length === 0) {
       return;
     }
 
-    // Only use the slider's header_color if it's explicitly set in admin
-    // If null/undefined/empty, don't change the color (Header will keep default gradient)
-    if (active.header_color && active.header_color.trim() !== '') {
-      setHeaderColor(active.header_color);
+    const current = sliders[activeIndex];
+    if (!current) {
+      return;
     }
-    // If no header_color is set, don't call setHeaderColor - Header will use default gradient
 
-    // Update sparkle settings
+    if (current.header_color && current.header_color.trim() !== '') {
+      setHeaderColor(current.header_color);
+    }
+
     setSparkleSettings({
-      enabled: active.sparkle_effect_enabled !== false,
-      color: active.sparkle_color || '#ffffff',
-      speed: active.sparkle_speed || 15,
+      enabled: current.sparkle_effect_enabled !== false,
+      color: current.sparkle_color || '#ffffff',
+      speed: current.sparkle_speed || 15,
     });
-  }, [
-    loading,
-    active?.id,
-    active?.header_color,
-    active?.sparkle_effect_enabled,
-    active?.sparkle_color,
-    active?.sparkle_speed,
-    setHeaderColor,
-    setSparkleSettings,
-  ]);
+  }, [loading, activeIndex, sliders, setHeaderColor, setSparkleSettings]);
 
   useEffect(() => {
     const fetchSliders = async () => {
@@ -263,7 +254,7 @@ export default function HeroSlider() {
           {bgImage && (
             <>
               <div 
-                className="absolute inset-0 w-full h-full overflow-hidden"
+                className="absolute inset-0 w-full h-full overflow-hidden relative"
                 style={{
                   margin: activeIndex === 0 ? '-3px' : '0',
                   width: activeIndex === 0 ? 'calc(100% + 6px)' : '100%',
@@ -272,14 +263,16 @@ export default function HeroSlider() {
                   top: activeIndex === 0 ? '-3px' : '0',
                 }}
               >
-                <img
+                <Image
                   src={bgImage}
-                  alt=""
+                  alt={active?.title || 'Slider background'}
+                  fill
+                  sizes="100vw"
+                  priority={activeIndex === 0}
                   className="absolute inset-0 w-full h-full"
                   style={{
-                    // Always respect admin settings (no hard-coded first-slide overrides)
                     objectFit: objectFit as React.CSSProperties['objectFit'],
-                    objectPosition: objectPosition,
+                    objectPosition,
                     transform: isMobile
                       ? `scaleX(${mobileImageScaleX || 1}) scaleY(${mobileImageScaleY || 1}) scale(${imageZoom || 1})`
                       : `scaleX(${imageScaleX || 1}) scaleY(${imageScaleY || 1}) scale(${imageZoom || 1})`,
@@ -289,6 +282,7 @@ export default function HeroSlider() {
                     minWidth: '100%',
                     minHeight: '100%',
                   }}
+                  unoptimized
                 />
               </div>
               {/* Gradient overlay - match desktop */}
@@ -364,7 +358,7 @@ export default function HeroSlider() {
           {bgImage && (
             <>
               <div 
-                className="absolute inset-0 w-full h-full overflow-hidden"
+                className="absolute inset-0 w-full h-full overflow-hidden relative"
                 style={{
                   margin: activeIndex === 0 ? '-3px' : '0',
                   width: activeIndex === 0 ? 'calc(100% + 6px)' : '100%',
@@ -373,16 +367,17 @@ export default function HeroSlider() {
                   top: activeIndex === 0 ? '-3px' : '0',
                 }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={bgImage}
-                  alt=""
+                  alt={active?.title || 'Slider background'}
+                  fill
+                  sizes="100vw"
+                  priority={activeIndex === 0}
                   className="absolute inset-0 w-full h-full slider-hero-image slider-hero-image-mobile transition-opacity duration-500 slider-image-zoom"
                   data-original-position={objectPosition}
                   style={{
-                    // Always respect admin settings (no hard-coded first-slide overrides)
                     objectFit: objectFit as React.CSSProperties['objectFit'],
-                    objectPosition: objectPosition,
+                    objectPosition,
                     transform: isMobile
                       ? `scaleX(${mobileImageScaleX || 1}) scaleY(${mobileImageScaleY || 1}) scale(${imageZoom || 1})`
                       : `scaleX(${imageScaleX || 1}) scaleY(${imageScaleY || 1}) scale(${imageZoom || 1})`,
@@ -392,6 +387,7 @@ export default function HeroSlider() {
                     minWidth: '100%',
                     minHeight: '100%',
                   } as React.CSSProperties}
+                  unoptimized
                 />
               </div>
               
@@ -507,23 +503,23 @@ export default function HeroSlider() {
         <RatWithSaree />
         <div className="relative z-10 mx-auto w-full max-w-6xl px-2 sm:px-4 -mt-[12px] sm:-mt-[28px] md:-mt-[48px] lg:-mt-[64px]">
           {/* Sarees: moved further outside left/right so visible properly. */}
-          <img
+          <Image
             src="/images/tagggy.png"
             alt=""
             width={220}
             height={200}
-            loading="lazy"
-            decoding="async"
             className="block absolute -bottom-8 sm:-bottom-12 -left-12 sm:-left-28 lg:-left-32 xl:-left-40 z-10 w-[100px] sm:w-[160px] lg:w-[190px] xl:w-[220px] max-h-[150px] sm:max-h-[200px] object-contain object-left-bottom pointer-events-none select-none"
+            unoptimized
+            priority={false}
           />
-          <img
+          <Image
             src="/images/tagggy.png"
             alt=""
             width={220}
             height={200}
-            loading="lazy"
-            decoding="async"
             className="block absolute -bottom-8 sm:-bottom-12 -right-12 sm:-right-28 lg:-right-32 xl:-right-40 z-10 w-[100px] sm:w-[160px] lg:w-[190px] xl:w-[220px] max-h-[150px] sm:max-h-[200px] object-contain object-right-bottom pointer-events-none select-none scale-x-[-1]"
+            unoptimized
+            priority={false}
           />
           {/* Cards only: no frame, no bg, no padding. */}
           <div className="relative z-30 w-full -mt-8 sm:mt-0">

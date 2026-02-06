@@ -130,6 +130,25 @@ class PaymentController extends Controller
 
                 DB::commit();
 
+                // Optionally auto-create Shiprocket order when payment is confirmed
+                if (config('services.shiprocket.auto_create_on_confirmed', false)) {
+                    try {
+                        $shiprocket = app(\App\Services\ShiprocketService::class);
+                        if ($shiprocket->isConfigured()) {
+                            $order->refresh();
+                            $data = $shiprocket->createOrderAndAssignAwb($order);
+                            $order->update(array_merge($data, [
+                                'tracking_number' => $data['shiprocket_awb'],
+                                'carrier' => $data['carrier'] ?? $order->carrier,
+                                'fulfillment_status' => 'processing',
+                                'processed_at' => now(),
+                            ]));
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Shiprocket auto-create on confirm failed: ' . $e->getMessage());
+                    }
+                }
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Payment verified successfully',

@@ -50,16 +50,35 @@ if (isDevelopment) {
       hostname: 'localhost',
       port: '9001',
       pathname: '/uploads/**',
+    },
+    {
+      protocol: 'http',
+      hostname: 'localhost',
+      port: '3000',
+      pathname: '/**',
+    },
+    {
+      protocol: 'http',
+      hostname: '127.0.0.1',
+      port: '3000',
+      pathname: '/**',
     }
   );
 }
 
+
+// Generic CDN / marketing domains
+remotePatterns.push({
+  protocol: 'https',
+  hostname: 'example.com',
+  port: '',
+  pathname: '/**',
+});
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   images: {
-    domains: isDevelopment ? ['example.com', 'localhost', '127.0.0.1', apiHostname] : [apiHostname],
     remotePatterns,
     unoptimized: false,
   },

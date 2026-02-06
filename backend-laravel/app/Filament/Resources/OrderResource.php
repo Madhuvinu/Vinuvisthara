@@ -6,6 +6,7 @@ use App\Filament\Resources\OrderResource\Pages;
 use App\Filament\Resources\OrderResource\RelationManagers;
 use App\Models\Order;
 use App\Mail\OrderShippedMail;
+use App\Services\ShiprocketService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -96,6 +97,9 @@ class OrderResource extends Resource
                     ->columnSpanFull(),
                 Forms\Components\DateTimePicker::make('shipped_at'),
                 Forms\Components\DateTimePicker::make('delivered_at'),
+                Forms\Components\TextInput::make('shiprocket_order_id')->label('Shiprocket Order ID')->disabled(),
+                Forms\Components\TextInput::make('shiprocket_shipment_id')->label('Shiprocket Shipment ID')->disabled(),
+                Forms\Components\TextInput::make('shiprocket_awb')->label('Shiprocket AWB')->disabled(),
             ]);
     }
 
@@ -142,6 +146,10 @@ class OrderResource extends Resource
                 Tables\Columns\TextColumn::make('tracking_number')
                     ->searchable()
                     ->copyable(),
+                Tables\Columns\TextColumn::make('shiprocket_order_id')
+                    ->label('Shiprocket')
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('payment_status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -193,6 +201,38 @@ class OrderResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                // Push to Shiprocket (create order + assign AWB)
+                Tables\Actions\Action::make('pushToShiprocket')
+                    ->label('Push to Shiprocket')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Create order on Shiprocket and assign AWB')
+                    ->visible(fn (Order $record) => ! $record->shiprocket_order_id && in_array($record->fulfillment_status, ['pending', 'processing']))
+                    ->action(function (Order $record) {
+                        $service = app(ShiprocketService::class);
+                        if (! $service->isConfigured()) {
+                            Notification::make()->title('Shiprocket not configured')->body('Set SHIPROCKET_EMAIL and SHIPROCKET_PASSWORD in .env')->danger()->send();
+                            return;
+                        }
+                        try {
+                            $data = $service->createOrderAndAssignAwb($record);
+                            $record->update(array_merge($data, [
+                                'tracking_number' => $data['shiprocket_awb'],
+                                'carrier' => $data['carrier'] ?? $record->carrier,
+                                'fulfillment_status' => $record->fulfillment_status === 'pending' ? 'processing' : $record->fulfillment_status,
+                                'processed_at' => $record->fulfillment_status === 'pending' ? now() : $record->processed_at,
+                            ]));
+                            Notification::make()
+                                ->title('Pushed to Shiprocket')
+                                ->body('AWB: ' . $data['shiprocket_awb'] . ($data['carrier'] ? ' (' . $data['carrier'] . ')' : ''))
+                                ->success()
+                                ->send();
+                        } catch (\Exception $e) {
+                            \Log::error('Shiprocket push failed: ' . $e->getMessage());
+                            Notification::make()->title('Shiprocket failed')->body($e->getMessage())->danger()->send();
+                        }
+                    }),
                 // Process Order
                 Tables\Actions\Action::make('process')
                     ->label('Process Order')
@@ -264,11 +304,13 @@ class OrderResource extends Resource
                         Forms\Components\TextInput::make('tracking_number')
                             ->label('Tracking Number')
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->default(fn (Order $record) => $record->shiprocket_awb ?? $record->tracking_number),
                         Forms\Components\TextInput::make('carrier')
                             ->label('Carrier')
                             ->maxLength(255)
-                            ->placeholder('e.g., FedEx, UPS, India Post'),
+                            ->placeholder('e.g., FedEx, UPS, India Post')
+                            ->default(fn (Order $record) => $record->carrier),
                         Forms\Components\Textarea::make('fulfillment_notes')
                             ->label('Notes')
                             ->rows(3),
@@ -313,6 +355,49 @@ class OrderResource extends Resource
                             ->title('Order marked as delivered')
                             ->success()
                             ->send();
+                    }),
+                // Generate Shiprocket Pickup
+                Tables\Actions\Action::make('shiprocketPickup')
+                    ->label('Request Pickup')
+                    ->icon('heroicon-o-truck')
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->visible(fn (Order $record) => (bool) $record->shiprocket_shipment_id)
+                    ->action(function (Order $record) {
+                        $service = app(ShiprocketService::class);
+                        if (! $service->isConfigured()) {
+                            Notification::make()->title('Shiprocket not configured')->danger()->send();
+                            return;
+                        }
+                        try {
+                            $service->generatePickup([(int) $record->shiprocket_shipment_id]);
+                            Notification::make()->title('Pickup requested with Shiprocket')->success()->send();
+                        } catch (\Exception $e) {
+                            \Log::error('Shiprocket pickup failed: ' . $e->getMessage());
+                            Notification::make()->title('Pickup request failed')->body($e->getMessage())->danger()->send();
+                        }
+                    }),
+                // Cancel on Shiprocket (for returns/cancellations)
+                Tables\Actions\Action::make('cancelShiprocket')
+                    ->label('Cancel on Shiprocket')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Cancel this order on Shiprocket?')
+                    ->visible(fn (Order $record) => (bool) $record->shiprocket_order_id && in_array($record->status, ['cancelled', 'refunded']))
+                    ->action(function (Order $record) {
+                        $service = app(ShiprocketService::class);
+                        if (! $service->isConfigured()) {
+                            Notification::make()->title('Shiprocket not configured')->danger()->send();
+                            return;
+                        }
+                        try {
+                            $service->cancelOrder($record->shiprocket_order_id);
+                            Notification::make()->title('Order cancelled on Shiprocket')->success()->send();
+                        } catch (\Exception $e) {
+                            \Log::error('Shiprocket cancel failed: ' . $e->getMessage());
+                            Notification::make()->title('Cancel failed')->body($e->getMessage())->danger()->send();
+                        }
                     }),
             ])
             ->bulkActions([

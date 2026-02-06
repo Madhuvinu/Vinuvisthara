@@ -22,8 +22,19 @@ export default function SidePanel() {
     // Fetch collections dynamically
     const fetchCollections = async () => {
       try {
-        const response = await api.getCategories();
-        const categoriesData = Array.isArray(response) ? response : (response?.categories || []);
+        const response: unknown = await api.getCategories();
+        let categoriesData: any[] = [];
+
+        if (Array.isArray(response)) {
+          categoriesData = response;
+        } else if (
+          response &&
+          typeof response === 'object' &&
+          'categories' in response &&
+          Array.isArray((response as { categories?: any[] }).categories)
+        ) {
+          categoriesData = (response as { categories?: any[] }).categories || [];
+        }
         const activeCollections = categoriesData
           .filter((cat: any) => cat.is_active)
           .map((cat: any) => ({

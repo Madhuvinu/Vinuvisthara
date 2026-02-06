@@ -4,6 +4,44 @@ import { logger } from '../utils/logger';
 // All APIs now use Laravel backend (port 8000)
 const LARAVEL_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
+// Slider caching configuration to avoid hammering the backend
+const SLIDER_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+let sliderCache: { data: any[]; timestamp: number } | null = null;
+let sliderFetchPromise: Promise<any[]> | null = null;
+
+// Products caching to dedupe repeated requests (home, collections, etc.)
+const PRODUCT_CACHE_TTL = 60 * 1000; // 1 minute
+const productCache = new Map<string, { data: any; timestamp: number }>();
+const productFetchPromises = new Map<string, Promise<any>>();
+
+// Categories + collections cache (used across multiple home sections)
+const CATEGORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+let categoryCache: { data: any[]; timestamp: number } | null = null;
+let categoryFetchPromise: Promise<any[]> | null = null;
+
+const COLLECTION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+let collectionCache: { data: any[]; timestamp: number } | null = null;
+let collectionFetchPromise: Promise<any[]> | null = null;
+
+const buildCacheKey = (params: Record<string, any>) => {
+  const normalized: Record<string, any> = {};
+  Object.keys(params)
+    .sort()
+    .forEach((key) => {
+      normalized[key] = params[key];
+    });
+  return JSON.stringify(normalized);
+};
+
+// Helper function to exponential backoff
+const getRetryDelay = (attempt: number) => {
+  return RETRY_DELAY * Math.pow(2, attempt - 1); // 1s, 2s, 4s...
+};
+
 // API Client initialization - logger handles all logging
 
 class ApiClient {
@@ -55,7 +93,7 @@ class ApiClient {
       }
     );
 
-    // Response interceptor
+    // Response interceptor with retry logic for 429 errors
     this.client.interceptors.response.use(
       (response) => {
         logger.debug('API response', {
@@ -65,7 +103,31 @@ class ApiClient {
         });
         return response;
       },
-      (error: AxiosError) => {
+      async (error: AxiosError) => {
+        const config = error.config as any;
+        
+        // Initialize retry count if not present
+        if (!config.retryCount) {
+          config.retryCount = 0;
+        }
+
+        // Retry logic for 429 (Too Many Requests) errors
+        if (error.response?.status === 429 && config.retryCount < MAX_RETRIES) {
+          config.retryCount++;
+          const delay = getRetryDelay(config.retryCount);
+          
+          logger.warn(`Rate limited (429). Retrying in ${delay}ms (attempt ${config.retryCount}/${MAX_RETRIES})`, {
+            url: config.url,
+            method: config.method,
+          });
+
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, delay));
+          
+          // Retry the request
+          return this.client(config);
+        }
+
         const errorMessage = error.response?.data || error.message;
         
         logger.error('API response error', error, {
@@ -73,6 +135,7 @@ class ApiClient {
           url: error.config?.url,
           status: error.response?.status,
           data: error.response?.data,
+          retryCount: config.retryCount,
         });
 
         // Handle network errors (connection refused, etc.)
@@ -244,64 +307,94 @@ class ApiClient {
     sortBy?: string;
     sortOrder?: string;
     collection_id?: string;
+    forceRefresh?: boolean;
   }) {
+    const { forceRefresh, ...productParams } = params || {};
+
+    const queryParams: Record<string, any> = {
+      limit: productParams.limit || 20,
+    };
+
+    if (productParams.search) queryParams.search = productParams.search;
+    if (productParams.category) queryParams.category = productParams.category;
+    if (productParams.color) queryParams.color = productParams.color;
+    if (productParams.fabric) queryParams.fabric = productParams.fabric;
+    if (productParams.occasion) queryParams.occasion = productParams.occasion;
+    if (productParams.minPrice) queryParams.minPrice = productParams.minPrice;
+    if (productParams.maxPrice) queryParams.maxPrice = productParams.maxPrice;
+    if (productParams.collection_id) queryParams.collection_id = productParams.collection_id;
+
+    const cacheKey = buildCacheKey(queryParams);
+    const now = Date.now();
+    const cached = productCache.get(cacheKey);
+
+    if (!forceRefresh && cached && now - cached.timestamp < PRODUCT_CACHE_TTL) {
+      logger.debug('Serving products from cache', { cacheKey, count: cached.data?.products?.length });
+      return cached.data;
+    }
+
+    if (!forceRefresh && productFetchPromises.has(cacheKey)) {
+      logger.debug('Awaiting in-flight products request', { cacheKey });
+      return productFetchPromises.get(cacheKey)!;
+    }
+
+    const fetchPromise = (async () => {
+      try {
+        const response = await this.client.get('/products', { params: queryParams });
+
+        // Transform Laravel products to frontend format
+        const products = (response.data.products || []).map((p: any) => ({
+          id: p.id.toString(),
+          name: p.name,
+          title: p.name,
+          description: p.description,
+          price: parseFloat(p.price) || 0,
+          compare_at_price: p.compare_at_price ? parseFloat(p.compare_at_price) : null, // Keep snake_case for consistency
+          compareAtPrice: p.compare_at_price ? parseFloat(p.compare_at_price) : null, // Also include camelCase for compatibility
+          images: p.images?.map((img: any) =>
+            typeof img === 'string' ? img : img.image_url || img.url
+          ) || [p.thumbnail].filter(Boolean),
+          thumbnail: p.thumbnail || p.images?.[0]?.image_url || null,
+          category: p.category?.name || null,
+          collection: p.collection?.name || null,
+          status: p.status,
+          availability: p.status === 'published' && (p.stock || 0) > 0 ? 'in_stock' : 'out_of_stock',
+          inventory: p.stock || 0,
+          tags: p.tags?.map((t: any) => t.name) || [],
+          // Discount fields
+          has_discount: p.has_discount || false,
+          discount_percentage: p.discount_percentage ? parseFloat(p.discount_percentage) : 0,
+          discount_amount: p.discount_amount ? parseFloat(p.discount_amount) : 0,
+          discounted_price: p.discounted_price ? parseFloat(p.discounted_price) : (parseFloat(p.price) || 0),
+          offer_text: p.offer_text || null,
+          average_rating: p.average_rating || 0,
+          total_reviews: p.total_reviews || 0,
+        }));
+
+        const payload = {
+          products,
+          pagination: response.data.pagination || {
+            total: response.data.count || 0,
+            totalPages: Math.ceil((response.data.count || 0) / (productParams.limit || 20)),
+            page: productParams.page || 1,
+            limit: productParams.limit || 20,
+          },
+        };
+
+        productCache.set(cacheKey, { data: payload, timestamp: Date.now() });
+        return payload;
+      } catch (error) {
+        logger.error('Failed to fetch products', error as Error, { cacheKey });
+        throw error;
+      }
+    })();
+
+    productFetchPromises.set(cacheKey, fetchPromise);
+
     try {
-      const queryParams: any = {
-        limit: params?.limit || 20,
-      };
-
-      if (params?.search) queryParams.search = params.search;
-      if (params?.category) queryParams.category = params.category;
-      if (params?.color) queryParams.color = params.color;
-      if (params?.fabric) queryParams.fabric = params.fabric;
-      if (params?.occasion) queryParams.occasion = params.occasion;
-      if (params?.minPrice) queryParams.minPrice = params.minPrice;
-      if (params?.maxPrice) queryParams.maxPrice = params.maxPrice;
-      if (params?.collection_id) queryParams.collection_id = params.collection_id;
-
-      const response = await this.client.get('/products', { params: queryParams });
-      
-      // Transform Laravel products to frontend format
-      const products = (response.data.products || []).map((p: any) => ({
-        id: p.id.toString(),
-        name: p.name,
-        title: p.name,
-        description: p.description,
-        price: parseFloat(p.price) || 0,
-        compare_at_price: p.compare_at_price ? parseFloat(p.compare_at_price) : null, // Keep snake_case for consistency
-        compareAtPrice: p.compare_at_price ? parseFloat(p.compare_at_price) : null, // Also include camelCase for compatibility
-        images: p.images?.map((img: any) => 
-          typeof img === 'string' ? img : img.image_url || img.url
-        ) || [p.thumbnail].filter(Boolean),
-        thumbnail: p.thumbnail || p.images?.[0]?.image_url || null,
-        category: p.category?.name || null,
-        collection: p.collection?.name || null,
-        status: p.status,
-        availability: p.status === 'published' && (p.stock || 0) > 0 ? 'in_stock' : 'out_of_stock',
-        inventory: p.stock || 0,
-        tags: p.tags?.map((t: any) => t.name) || [],
-        // Discount fields
-        has_discount: p.has_discount || false,
-        discount_percentage: p.discount_percentage ? parseFloat(p.discount_percentage) : 0,
-        discount_amount: p.discount_amount ? parseFloat(p.discount_amount) : 0,
-        discounted_price: p.discounted_price ? parseFloat(p.discounted_price) : (parseFloat(p.price) || 0),
-        offer_text: p.offer_text || null,
-        average_rating: p.average_rating || 0,
-        total_reviews: p.total_reviews || 0,
-      }));
-
-      return {
-        products,
-        pagination: response.data.pagination || {
-          total: response.data.count || 0,
-          totalPages: Math.ceil((response.data.count || 0) / (params?.limit || 20)),
-          page: params?.page || 1,
-          limit: params?.limit || 20,
-        },
-      };
-    } catch (error) {
-      logger.error('Failed to fetch products', error as Error);
-      throw error;
+      return await fetchPromise;
+    } finally {
+      productFetchPromises.delete(cacheKey);
     }
   }
 
@@ -343,23 +436,75 @@ class ApiClient {
     }
   }
 
-  async getCollections() {
+  async getCollections(forceRefresh = false) {
+    const now = Date.now();
+    const cacheIsFresh = collectionCache && now - collectionCache.timestamp < COLLECTION_CACHE_TTL;
+
+    if (!forceRefresh && cacheIsFresh && collectionCache) {
+      logger.debug('Serving collections from cache', { count: collectionCache.data.length });
+      return collectionCache.data;
+    }
+
+    if (!forceRefresh && collectionFetchPromise) {
+      logger.debug('Awaiting in-flight collections request');
+      return collectionFetchPromise;
+    }
+
+    collectionFetchPromise = (async () => {
+      try {
+        const response = await this.client.get('/collections');
+        const payload = response.data || [];
+        collectionCache = { data: payload, timestamp: Date.now() };
+        return payload;
+      } catch (error) {
+        logger.error('Failed to fetch collections', error as Error);
+        collectionCache = null;
+        throw error;
+      }
+    })();
+
     try {
-      const response = await this.client.get('/collections');
-      return response.data || [];
-    } catch (error) {
-      logger.error('Failed to fetch collections', error as Error);
+      return await collectionFetchPromise;
+    } catch {
       return [];
+    } finally {
+      collectionFetchPromise = null;
     }
   }
 
-  async getCategories() {
+  async getCategories(forceRefresh = false) {
+    const now = Date.now();
+    const cacheIsFresh = categoryCache && now - categoryCache.timestamp < CATEGORY_CACHE_TTL;
+
+    if (!forceRefresh && cacheIsFresh && categoryCache) {
+      logger.debug('Serving categories from cache', { count: categoryCache.data.length });
+      return categoryCache.data;
+    }
+
+    if (!forceRefresh && categoryFetchPromise) {
+      logger.debug('Awaiting in-flight categories request');
+      return categoryFetchPromise;
+    }
+
+    categoryFetchPromise = (async () => {
+      try {
+        const response = await this.client.get('/categories');
+        const payload = response.data || [];
+        categoryCache = { data: payload, timestamp: Date.now() };
+        return payload;
+      } catch (error) {
+        logger.error('Failed to fetch categories', error as Error);
+        categoryCache = null;
+        throw error;
+      }
+    })();
+
     try {
-      const response = await this.client.get('/categories');
-      return response.data || [];
-    } catch (error) {
-      logger.error('Failed to fetch categories', error as Error);
+      return await categoryFetchPromise;
+    } catch {
       return [];
+    } finally {
+      categoryFetchPromise = null;
     }
   }
 
@@ -491,13 +636,40 @@ class ApiClient {
   }
 
   // Slider endpoints - Using Laravel API
-  async getSliders(includeInactive = false) {
-    const response = await this.client.get('/slider-images');
-    const sliders = response.data.sliders || [];
-    if (!includeInactive) {
-      return sliders.filter((s: any) => s.is_active !== false);
+  async getSliders(includeInactive = false, forceRefresh = false) {
+    const filterSliders = (sliders: any[]) =>
+      includeInactive ? sliders : sliders.filter((s: any) => s.is_active !== false);
+
+    const now = Date.now();
+    const cacheIsFresh = sliderCache && now - sliderCache.timestamp < SLIDER_CACHE_TTL;
+
+    if (!forceRefresh && cacheIsFresh && sliderCache) {
+      logger.debug('Serving sliders from cache', { count: sliderCache.data.length });
+      return filterSliders(sliderCache.data);
     }
-    return sliders;
+
+    if (!forceRefresh && sliderFetchPromise) {
+      logger.debug('Awaiting in-flight slider request');
+      const sliders = await sliderFetchPromise;
+      return filterSliders(sliders);
+    }
+
+    try {
+      sliderFetchPromise = this.client.get('/slider-images').then((response) => {
+        const sliders = response.data.sliders || [];
+        sliderCache = { data: sliders, timestamp: Date.now() };
+        return sliders;
+      });
+
+      const sliders = await sliderFetchPromise;
+      return filterSliders(sliders);
+    } catch (error) {
+      sliderCache = null;
+      logger.error('Failed to fetch sliders', error as Error);
+      throw error;
+    } finally {
+      sliderFetchPromise = null;
+    }
   }
 
   async getSlider(id: string) {
