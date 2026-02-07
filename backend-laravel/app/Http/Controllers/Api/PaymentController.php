@@ -127,7 +127,7 @@ class PaymentController extends Controller
                 // Update order
                 $order->update([
                     'payment_status' => 'paid',
-                    'status' => 'confirmed',
+                    'status' => 'processing',
                 ]);
 
                 // Clear cart
