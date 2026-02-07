@@ -94,19 +94,35 @@ class PaymentController extends Controller
         DB::beginTransaction();
         try {
             if ($verification['success']) {
-                // Update payment record
+                // Update payment record - find by order_id first
                 $payment = Payment::where('order_id', $order->id)
-                    ->where('transaction_id', $request->razorpay_order_id)
-                    ->firstOrFail();
-
-                $payment->update([
-                    'transaction_id' => $request->razorpay_payment_id,
-                    'status' => 'completed',
-                    'metadata' => array_merge($payment->metadata ?? [], [
-                        'razorpay_payment_id' => $request->razorpay_payment_id,
-                        'verified_at' => now()->toDateTimeString(),
-                    ]),
-                ]);
+                    ->first();
+                
+                if (!$payment) {
+                    // Create payment record if it doesn't exist
+                    $payment = Payment::create([
+                        'order_id' => $order->id,
+                        'payment_method' => 'razorpay',
+                        'transaction_id' => $request->razorpay_payment_id,
+                        'amount' => $order->total,
+                        'status' => 'completed',
+                        'metadata' => [
+                            'razorpay_order_id' => $request->razorpay_order_id,
+                            'razorpay_payment_id' => $request->razorpay_payment_id,
+                            'verified_at' => now()->toDateTimeString(),
+                        ],
+                    ]);
+                } else {
+                    // Update existing payment record
+                    $payment->update([
+                        'transaction_id' => $request->razorpay_payment_id,
+                        'status' => 'completed',
+                        'metadata' => array_merge($payment->metadata ?? [], [
+                            'razorpay_payment_id' => $request->razorpay_payment_id,
+                            'verified_at' => now()->toDateTimeString(),
+                        ]),
+                    ]);
+                }
 
                 // Update order
                 $order->update([
