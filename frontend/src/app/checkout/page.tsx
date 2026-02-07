@@ -221,7 +221,7 @@ export default function CheckoutPage() {
           }
         },
         prefill: {
-          name: shippingAddress.email || 'Customer',
+          name: 'Customer',
           email: shippingAddress.email,
           contact: shippingAddress.phone,
         },
