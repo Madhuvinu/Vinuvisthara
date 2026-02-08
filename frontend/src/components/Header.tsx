@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, FormEvent, useRef } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, ShoppingBag, User } from 'lucide-react';
+import { Menu, Search, ShoppingBag, User } from 'lucide-react';
 import { api } from '@/lib/api';
 import { isAuthenticated, getCurrentUser, clearAuth } from '@/utils/auth';
 import { useHeaderColor } from '@/contexts/HeaderColorContext';
+import { useSidePanel } from '@/hooks/useSidePanel';
 
 const DEFAULT_HEADER_GRADIENT = 'linear-gradient(to right, #0f766e, #166534)'; // teal-800 to green-800
 const CONTEXT_DEFAULT = '#1f2937';
@@ -36,36 +38,42 @@ const SparkleEffect = ({ enabled, color, speed }: { enabled: boolean; color: str
     return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
   };
 
-  const sparkles = Array.from({ length: 15 }, (_, i) => ({
+  const sparkles = Array.from({ length: 25 }, (_, i) => ({
     id: i,
-    size: Math.random() * 1 + 1,
+    size: Math.random() * 6 + 5,
     left: Math.random() * 100,
     top: Math.random() * 100,
     delay: Math.random() * 6,
     duration: (speed * 0.6) + Math.random() * (speed * 0.8),
     direction: Math.random() > 0.5 ? 'down-right' : 'up-right',
-    opacity: 0.5,
+    opacity: 0.85,
   }));
+
+  const StarSvg = ({ size, color }: { size: number; color: string }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} opacity={0.9}>
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </svg>
+  );
 
   return (
     <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
       {sparkles.map((sparkle) => (
         <div
           key={sparkle.id}
-          className={`absolute rounded-full ${sparkle.direction === 'down-right' ? 'animate-sparkle-down-right' : 'animate-sparkle-up-right'}`}
+          className={`absolute ${sparkle.direction === 'down-right' ? 'animate-sparkle-down-right' : 'animate-sparkle-up-right'}`}
           style={{
-            width: `${sparkle.size}px`,
-            height: `${sparkle.size}px`,
             left: `${sparkle.left}%`,
             top: `${sparkle.top}%`,
-            background: `radial-gradient(circle, ${getRgba(color, 0.7)} 0%, ${getRgba(color, 0.4)} 50%, transparent 100%)`,
-            boxShadow: `0 0 2px ${getRgba(color, 0.5)}, 0 0 4px ${getRgba(color, 0.3)}`,
+            width: `${sparkle.size}px`,
+            height: `${sparkle.size}px`,
             animationDuration: `${sparkle.duration}s`,
             animationDelay: `${sparkle.delay}s`,
             opacity: sparkle.opacity,
-            filter: 'blur(0.3px)',
+            filter: 'drop-shadow(0 0 3px rgba(255, 255, 255, 0.6))',
           }}
-        />
+        >
+          <StarSvg size={sparkle.size} color="#ffffff" />
+        </div>
       ))}
     </div>
   );
@@ -74,6 +82,7 @@ const SparkleEffect = ({ enabled, color, speed }: { enabled: boolean; color: str
 export default function Header() {
   const router = useRouter();
   const { headerColor, sparkleSettings } = useHeaderColor();
+  const { openPanel } = useSidePanel();
   const [cartCount, setCartCount] = useState(0);
   const [user, setUser] = useState<any>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -206,55 +215,74 @@ export default function Header() {
           speed={sparkleSettings.speed}
         />
         <div className="relative flex items-center justify-between h-16 sm:h-20 px-4 sm:px-6 py-3 sm:py-4">
-          {/* Logo on left - responsive sizing */}
-          <Link
-            href="/"
-            className="text-xl sm:text-2xl font-playfair font-bold text-white hover:text-yellow-300 active:text-yellow-300 transition-colors touch-manipulation"
-          >
-            VinuVisthara
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={openPanel}
+              className="lg:hidden inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+              aria-label="Open menu"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+
+            {/* Logo on left - responsive sizing */}
+            <Link
+              href="/"
+              className="flex items-center gap-0 text-xl sm:text-2xl font-playfair font-bold hover:opacity-80 active:opacity-70 transition-opacity touch-manipulation"
+            >
+              <Image
+                src="/otherlogo-Photoroom.png"
+                alt="V"
+                width={28}
+                height={28}
+                className="h-7 w-7 sm:h-8 sm:w-8 inline-block -mr-1"
+                priority
+              />
+              <span className="bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 bg-clip-text text-transparent font-extrabold tracking-tight lg:tracking-wide">inuVisthara</span>
+            </Link>
+          </div>
 
           {/* Center navigation - hidden on mobile, shown on lg+ */}
           <nav className="hidden lg:flex items-center gap-8">
             <Link
               href="/"
-              className="text-white hover:text-yellow-300 transition-colors font-poppins text-sm"
+              className="text-amber-500 hover:text-yellow-400 transition-colors font-poppins text-sm"
             >
               Home
             </Link>
             <Link
               href="/products"
-              className="text-white hover:text-yellow-300 transition-colors font-poppins text-sm"
+              className="text-amber-500 hover:text-yellow-400 transition-colors font-poppins text-sm"
             >
               Sarees
             </Link>
             <Link
               href="/collections"
-              className="text-white hover:text-yellow-300 transition-colors font-poppins text-sm"
+              className="text-amber-500 hover:text-yellow-400 transition-colors font-poppins text-sm"
             >
               Collections
             </Link>
             <Link
               href="/about"
-              className="text-white hover:text-yellow-300 transition-colors font-poppins text-sm"
+              className="text-amber-500 hover:text-yellow-400 transition-colors font-poppins text-sm"
             >
               About Us
             </Link>
             <Link
               href="/offers"
-              className="text-white hover:text-yellow-300 transition-colors font-poppins text-sm"
+              className="text-amber-500 hover:text-yellow-400 transition-colors font-poppins text-sm"
             >
               Offers
             </Link>
             <Link
               href="/blog"
-              className="text-white hover:text-yellow-300 transition-colors font-poppins text-sm"
+              className="text-amber-500 hover:text-yellow-400 transition-colors font-poppins text-sm"
             >
               Blogs
             </Link>
             <Link
               href="/contact"
-              className="text-white hover:text-yellow-300 transition-colors font-poppins text-sm"
+              className="text-amber-500 hover:text-yellow-400 transition-colors font-poppins text-sm"
             >
               Contact
             </Link>
@@ -262,8 +290,24 @@ export default function Header() {
 
           {/* Right side icons - touch-friendly on mobile */}
           <div className="flex items-center gap-3 sm:gap-4">
+            {/* Compact Search Input */}
+            <div className="hidden sm:flex items-center gap-2 bg-white/10 backdrop-blur rounded-lg px-2.5 py-1.5 border border-amber-500/30 hover:border-amber-500/50 transition-colors">
+              <Search className="w-4 h-4 text-amber-500 flex-shrink-0" />
+              <form onSubmit={handleSearchSubmit} className="flex items-center">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  placeholder="Search..."
+                  className="bg-transparent outline-none text-sm text-white placeholder-amber-500/50 w-32 focus:w-40 transition-all"
+                />
+              </form>
+            </div>
+            
+            {/* Mobile search button */}
             <button
-              className="text-white hover:text-yellow-300 active:text-yellow-300 transition-colors touch-manipulation p-1 -mr-1"
+              className="sm:hidden text-amber-500 hover:text-yellow-400 active:text-yellow-400 transition-colors touch-manipulation p-1 -mr-1"
               aria-label="Search"
               onClick={openSearch}
             >
@@ -273,7 +317,7 @@ export default function Header() {
             {user ? (
               <button
                 onClick={handleLogout}
-                className="text-white hover:text-yellow-300 active:text-yellow-300 transition-colors touch-manipulation p-1 -mr-1"
+                className="text-amber-500 hover:text-yellow-400 active:text-yellow-400 transition-colors touch-manipulation p-1 -mr-1"
                 aria-label="User account"
               >
                 <User className="w-5 h-5 sm:w-5 sm:h-5" />
@@ -281,7 +325,7 @@ export default function Header() {
             ) : (
               <Link
                 href="/login"
-                className="text-white hover:text-yellow-300 active:text-yellow-300 transition-colors touch-manipulation p-1 -mr-1"
+                className="text-amber-500 hover:text-yellow-400 active:text-yellow-400 transition-colors touch-manipulation p-1 -mr-1"
                 aria-label="Login"
               >
                 <User className="w-5 h-5 sm:w-5 sm:h-5" />
@@ -290,7 +334,7 @@ export default function Header() {
             
             <Link
               href="/cart"
-              className="relative text-white hover:text-yellow-300 active:text-yellow-300 transition-colors touch-manipulation p-1"
+              className="relative text-amber-500 hover:text-yellow-400 active:text-yellow-400 transition-colors touch-manipulation p-1"
               aria-label="Shopping cart"
             >
               <ShoppingBag className="w-5 h-5 sm:w-5 sm:h-5" />
@@ -304,43 +348,31 @@ export default function Header() {
         </div>
 
         {isSearchOpen && (
-          <div className="px-4 sm:px-6 pb-4">
-            <form
-              onSubmit={handleSearchSubmit}
-              className="relative flex flex-col gap-3 rounded-2xl border border-white/30 bg-white/95 text-gray-900 shadow-2xl backdrop-blur"
-            >
-              <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-                <div className="hidden sm:flex items-center justify-center w-11 h-11 rounded-full bg-emerald-100 text-emerald-600">
-                  <Search className="w-5 h-5" />
-                </div>
+          <div className="sm:hidden absolute inset-x-0 top-full z-40" onClick={closeSearch}>
+            <div className="absolute -top-0 left-0 right-0 h-[100vh] bg-black/20" />
+            <div className="relative px-4 py-4">
+              <form
+                onSubmit={handleSearchSubmit}
+                onClick={(event) => event.stopPropagation()}
+                className="relative flex items-center gap-3 rounded-lg border border-white/30 bg-white/95 text-gray-900 shadow-lg px-3 py-2"
+              >
+                <Search className="w-5 h-5 text-emerald-600" />
                 <input
                   ref={searchInputRef}
                   value={searchValue}
                   onChange={(event) => setSearchValue(event.target.value)}
-                  placeholder="Search sarees by color, fabric, occasion..."
-                  className="flex-1 min-w-[160px] bg-transparent outline-none text-base placeholder-gray-400"
+                  placeholder="Search sarees..."
+                  className="flex-1 bg-transparent outline-none text-sm placeholder-gray-400"
                 />
-                <div className="flex items-center gap-2">
-                  <button
-                    type="submit"
-                    className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
-                  >
-                    Search
-                  </button>
-                  <button
-                    type="button"
-                    onClick={closeSearch}
-                    className="px-3 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center justify-between px-4 pb-3 text-[11px] uppercase tracking-[0.35em] text-gray-500">
-                <span>Press Enter</span>
-                <span>Esc to close</span>
-              </div>
-            </form>
+                <button
+                  type="button"
+                  onClick={closeSearch}
+                  className="text-gray-600 hover:text-gray-900 text-lg font-semibold"
+                >
+                  ✕
+                </button>
+              </form>
+            </div>
           </div>
         )}
       </div>
