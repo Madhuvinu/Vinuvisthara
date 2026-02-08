@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 export default function LoadingScreen() {
   const [isLoading, setIsLoading] = useState(true);
@@ -58,7 +59,14 @@ export default function LoadingScreen() {
           <div className="theta-ring theta-ring--inner" />
           <div className="theta-arc theta-arc--left" />
           <div className="theta-arc theta-arc--right" />
-          <span className="sari-spin" aria-hidden="true">👗</span>
+          <Image
+            src="/otherlogo-Photoroom.png"
+            alt="VinuVisthara"
+            width={56}
+            height={56}
+            className="sari-spin"
+            priority
+          />
         </div>
 
         <div className="text-center space-y-2">
@@ -143,9 +151,11 @@ export default function LoadingScreen() {
         }
         .sari-spin {
           position: absolute;
-          font-size: 3rem;
+          width: 56px;
+          height: 56px;
           animation: sariOrbit 4s linear infinite;
-          text-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+          filter: brightness(0.5) contrast(1.4) saturate(0.95) drop-shadow(0 0 20px rgba(16, 185, 129, 0.9));
+          object-fit: contain;
         }
         .theta-bar {
           position: relative;

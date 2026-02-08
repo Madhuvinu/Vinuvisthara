@@ -9,8 +9,11 @@ import { api } from '@/lib/api';
 
 const staticMenuItems = [
   { name: 'Home', href: '/' },
-  { name: 'Shop', href: '/collections/all' },
+  { name: 'Sarees', href: '/products' },
+  { name: 'Collections', href: '/collections' },
   { name: 'About Us', href: '/about' },
+  { name: 'Offers', href: '/offers' },
+  { name: 'Blogs', href: '/blog' },
   { name: 'Contact', href: '/contact' },
 ];
 
